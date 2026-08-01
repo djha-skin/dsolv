@@ -1,6 +1,11 @@
 # Agent Instructions
 
-This project uses **bd** (beads) for issue tracking. Run `bd prime` for full workflow context.
+This project uses **bd** (beads) for issue tracking. See [bd prime] for
+full workflow context.
+
+The `djha-skin-common-lisp` skill lives in
+`.agents/skills/djha-skin-common-lisp/` and covers project setup, development
+workflow, and style guidelines for Common Lisp code in this repo. Run `bd prime` for full workflow context.
 
 > **Architecture in one line:** Issues live in a local Dolt database
 > (`.beads/dolt/`); cross-machine sync uses `bd dolt push/pull` (a

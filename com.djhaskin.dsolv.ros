@@ -1,0 +1,17 @@
+#!/usr/bin/env ros
+;;; -*- mode: lisp -*-
+;;;
+;;; Roswell script for dsolv - the CLI entry point.
+;;;
+;;; To build the executable:
+;;;   ros build com.djhaskin.dsolv.ros
+;;;
+;;; To run:
+;;;   ros run --load com.djhaskin.dsolv.ros <args>
+
+(in-package :cl-user)
+
+(require :asdf)
+(asdf:load-system :com.djhaskin.dsolv)
+
+(com.djhaskin.dsolv:main)

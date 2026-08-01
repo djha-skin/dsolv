@@ -1,0 +1,77 @@
+---
+name: style-guide
+sub-of: djha-skin-common-lisp
+description: >
+  Style points on how to write good Common Lisp code, Dan Haskin
+  style.
+---
+
+# Style Guide
+
+Please note the following style guidelines:
+
+* We use full-name reverse-DNS semantics to name ASDF systems
+
+* There should at least be a `src/main.lisp` and a `tests/main.lisp` file
+  present.
+
+* License is MIT.
+
+* We use the parachute library for tests.
+
+* We call each test package on `(asdf:test-system
+  "com.djhaskin.<name-of-the-repository>")`.
+
+* Uninterned keyword symbols are preferred when naming and pulling in
+  packages within a `defpackage` form; interned keywords are used as directives
+  within `defpackage` (`:use`, `:import-from`, etc.)
+
+* We use full-name, reverse-DNS semantics to name packages, and the `main.lisp`
+  file's package should match that of the whole system
+
+* Each file gets its own subpackage
+
+* Each dependency within a `defpackage` form gets its own `(:import-from)`
+  statement which doesn't actually list any symbols from that package. This is
+  solely to tell ASDF that they are dependencies of this package.
+
+* Local nicknames in `defpackage` and throughout the source are heavily used,
+  including to remove all the reverse-DNS prefixes of in-system package
+  dependencies
+
+* Files should all begin with file beginner comment lines, prefixed with four
+  semi-colons (`;;;;`).
+
+* Comments above top-level definitions (`defun`, `defparameter`, etc.) hould
+  start with three semi-colons (`;;;`).
+
+* Comments on their own line should start with two semi-colons (`;;`).
+
+* Comments sharing a line with code should start with one, or a single
+  semi-colon (`;`).
+
+* All the same conventions apply to test code (under the `tests/` folder) as
+  main code (under the `src/` folder).
+
+* Parachute within test code `defpackage` forms in particular should have an
+  `import-from` but SHOULD name the symbols we use, contrary to the usual
+  convention outlined in this guide.
+
+* Only 80 characters per line, please, for any text-based file in the
+  repository. Wrap intelligently if you must to follow this rule.
+
+* Use `ros fmt <file>` to format Lisp source files. It handles consistent
+  indentation automatically. Run `ros fmt` on all source files before
+  committing.
+
+* Use `cl-mcp` MCP server for ALL Lisp operations — loading systems, running
+  tests, editing forms, checking parens, code search. Do NOT use one-off `sbcl`
+  or `ros` commands. The cl-mcp server manages the Lisp image and provides
+  structure-aware tools (`lisp-edit-form`, `lisp-patch-form`, `lisp-read-file`,
+  `repl-eval`, `run-tests`, `lisp-check-parens`, `code-find`, `code-describe`,
+  `code-find-references`).
+
+* No trailing whitespace, ever.
+
+* Keep a changelog in `CHANGELOG.md` in the root folder. For each version bump,
+  track what was changed, fixed, and added.

@@ -1,0 +1,250 @@
+#!/bin/sh
+#|-*- mode:lisp -*-|#
+#|dsolv fmt - format and lint Lisp sources. Forked from roswell/fmt.ros, adds style checks.
+exec ros -Q -N roswell -- $0 "$@"
+|#
+(progn ;;init forms
+  (ros:ensure-asdf)
+  #+sbcl (require "sb-introspect")
+  #+quicklisp (ql:quickload '("cl-indentify" "cl-ppcre") :silent t))
+
+(defpackage :ros.script.fmt.3707812168
+  (:use :cl :cl-ppcre))
+(in-package :ros.script.fmt.3707812168)
+
+;;; ─── Constants ──────────────────────────────────────────────────────────────
+
+(defparameter *max-line-length* 80
+                                "Maximum allowed line length.")
+
+(defparameter *trailing-space* (cl-ppcre:create-scanner "[ \\t]+$")
+                               "Regex for trailing whitespace.")
+
+(defparameter *defpackage-re* (cl-ppcre:create-scanner
+                                "^(\\s*)\\(defpackage\\s")
+                              "Regex to detect defpackage start.")
+
+(defparameter *keyword-export-re* (cl-ppcre:create-scanner
+                                    "\\s:(\\S+)\\s")
+                                  "Regex to detect interned keywords (:foo) that should be uninterned (#:foo).")
+
+;;; ─── Lint checks ────────────────────────────────────────────────────────────
+
+(defun lint-file (file)
+  "Run all style checks on FILE. Returns a list of issue strings."
+  (let ((issues nil)
+        (lines nil)
+        (in-defpackage nil)
+        (defpackage-line 0))
+    (with-open-file (in file :external-format :utf-8)
+      (loop for line = (read-line in nil)
+            for i from 1
+            while line
+            do (push line lines)
+            ;; Per-line checks
+            (let ((len (length line)))
+              (when (> len *max-line-length*)
+                (push (format nil "  Line ~D: ~D chars (max ~D)"
+                              i len *max-line-length*)
+                      issues)))
+            (when (cl-ppcre:scan *trailing-space* line)
+              (push (format nil "  Line ~D: trailing whitespace" i)
+                    issues))
+            ;; Comment style checks
+            (let ((trimmed (string-trim '(#\Space #\Tab) line)))
+              (when (and (plusp (length trimmed))
+                         (char= (char trimmed 0) #\;))
+                (let ((semi-count
+                        (loop for c across trimmed
+                              while (char= c #\;)
+                              count c)))
+                  (unless (member semi-count '(1 2 3 4))
+                    (push (format nil "  Line ~D: ~D semicolons (use 1-4)"
+                                  i semi-count)
+                          issues)))))
+            ;; defpackage tracking
+            (multiple-value-bind (match groups)
+                                 (cl-ppcre:scan-to-strings *defpackage-re* line)
+              (declare (ignore match))
+              (when groups
+                (setf in-defpackage t
+                      defpackage-line i)))
+            (when (and in-defpackage
+                       (cl-ppcre:scan "\\s*\\)\\s*$" line))
+              (setf in-defpackage nil))
+            ;; Uninterned keyword check inside defpackage
+            (when in-defpackage
+              (multiple-value-bind (match-p starts ends)
+                                   (cl-ppcre:scan *keyword-export-re* line)
+                (declare (ignore match-p))
+                (when starts
+                  (loop for idx from 0 below (length starts)
+                        do (let ((start (aref starts idx))
+                                 (end (aref ends idx)))
+                             (let ((kw (subseq line start end)))
+                               (unless (or (cl-ppcre:scan "^:[#:]" kw)
+                                           (cl-ppcre:scan "^:\\\"" kw))
+                                 (push (format nil
+                                               "  Line ~D: interned keyword ~A \
+(use #: prefix in defpackage)"
+                                               i (string-trim '(#\Space) kw))
+                                       issues)))))))))
+      (setf lines (nreverse lines))
+      (setf issues (nreverse issues)))
+    ;; File header check
+    (unless (and (>= (length lines) 2)
+                 (every (lambda (line)
+                          (and (plusp (length line))
+                               (char= (char line 0) #\;)
+                               (char= (char line 1) #\;)
+                               (char= (char line 2) #\;)
+                               (char= (char line 3) #\;)))
+                        (subseq lines 0 2)))
+      (push "  Missing file header (first 2 lines should start with ;;;;)"
+            issues))
+    (when issues
+      (append (list (format nil "~A:" file))
+              issues))))
+
+;;; ─── Auto-fix functions ────────────────────────────────────────────────────
+
+(defun fix-trailing-whitespace (file)
+  "Remove trailing whitespace from every line in FILE."
+  (let ((content nil))
+    (with-open-file (in file :external-format :utf-8)
+      (loop for line = (read-line in nil)
+            while line
+            do (push line content))
+      (setf content (nreverse content)))
+    (with-open-file (out file :direction :output :if-exists :supersede
+                         :external-format :utf-8)
+      (dolist (line content)
+        (write-line (cl-ppcre:regex-replace *trailing-space* line "") out)))))
+
+;;; ─── Formatting (from original fmt.ros) ─────────────────────────────────────
+
+(defun function-lambda-list (fn)
+  "Portably retrieve a function's lambda list."
+  (ignore-errors
+    #+sbcl
+    (funcall (find-symbol "FUNCTION-LAMBDA-LIST" "SB-INTROSPECT") fn)
+    #-sbcl nil))
+
+(defun register-macro-templates ()
+  "Auto-detect macros with &body and register cl-indentify templates."
+  (do-all-symbols (sym)
+    (when (macro-function sym)
+      (let* ((arglist (function-lambda-list (macro-function sym)))
+             (body-pos (position '&body arglist)))
+        (when body-pos
+          (setf (indentify:indent-template sym)
+                `(:style :call :count ,body-pos)))))))
+
+(defun system (path)
+  (let ((* (when (and (probe-file path)
+                      (equal (pathname-type path) "asd"))
+             (asdf:load-asd path)
+             (pathname-name path))))
+    (labels ((r (c)
+               (typecase c
+                 (asdf:system
+                  (append
+                    (directory (merge-pathnames "roswell/*.ros"
+                                                (asdf:component-pathname c)))
+                    (loop for child in (asdf:component-children c)
+                          append (r child))))
+                 (asdf:module
+                  (loop for child in (asdf:component-children c)
+                        append (r child)))
+                 (asdf:cl-source-file
+                  (list (asdf:component-pathname c)))
+                 (t (list c)))))
+      (when *
+        (ql:quickload * :silent (not (ros:verbose)))
+        (register-macro-templates)
+        (r (asdf:find-system *))))))
+
+(defun register-standard-templates ()
+  "Override templates to match Lem/Emacs/SLIME indentation."
+  (setf (indentify:indent-template 'if) '(:count 3))
+  (dolist (sym '(case ccase ecase typecase ctypecase etypecase))
+    (setf (indentify:indent-template sym)
+          '(:count 1 :sub (nil nil (:style :list)))))
+  (setf (indentify:indent-template 'cond)
+        '(:count 0 :sub (nil (:style :list)))))
+
+(defun format-file (file)
+  "Format FILE using cl-indentify, stripping trailing whitespace."
+  (let ((result (with-output-to-string (out)
+                  (with-open-file (in file)
+                    (indentify:indentify in out)))))
+    (with-open-file (out file :direction :output :if-exists :supersede
+                         :external-format :utf-8)
+      (with-input-from-string (in result)
+        (loop for line = (read-line in nil)
+              while line
+              do (write-string (string-right-trim '(#\Space #\Tab) line) out)
+              (terpri out))))))
+
+;;; ─── Main entry point ───────────────────────────────────────────────────────
+
+(defun main (&rest argv)
+  "Format and lint Lisp source files."
+  (let ((check-only nil)
+        (fix-flag nil)
+        (files nil)
+        (exit-code 0))
+    ;; Parse arguments
+    (loop for arg in argv
+          do (cond
+               ((string= arg "--check") (setf check-only t))
+               ((string= arg "--fix")   (setf fix-flag t))
+               (t (push arg files))))
+    (setf files (nreverse files))
+    ;; Discover files if none given
+    (unless files
+      (setf files (append (directory "*.lisp")
+                          (directory "*.ros")
+                          (directory "src/**/*.lisp")
+                          (directory "src/**/*.ros")
+                          (directory "tests/**/*.lisp")
+                          (directory "tests/**/*.ros"))))
+    (indentify:load-default-templates)
+    (register-standard-templates)
+    ;; Process each file
+    (dolist (file files)
+      (let ((path (probe-file file)))
+        (unless path
+          (format t "~A does not exist~%" file)
+          (setf exit-code 1)
+          (return))
+        ;; Fix trailing whitespace if --fix
+        (when fix-flag
+          (handler-case
+              (progn
+                (fix-trailing-whitespace path)
+                (format t "  Fixed trailing whitespace: ~A~%"
+                        (file-namestring path)))
+            (error (e)
+              (format t "  Error fixing ~A: ~A~%"
+                      (file-namestring path) e)
+              (setf exit-code 2))))
+        ;; Run lint checks
+        (let ((issues (lint-file path)))
+          (when issues
+            (dolist (issue issues)
+              (format t "~A~%" issue)
+              (finish-output))
+            (setf exit-code (max exit-code 1))))
+        ;; Format unless --check
+        (unless check-only
+          (handler-case
+              (progn
+                (format-file path)
+                (format t "  Formatted ~A~%" (file-namestring path)))
+            (error (e)
+              (format t "  Error formatting ~A: ~A~%"
+                      (file-namestring path) e)
+              (setf exit-code 2))))))
+    exit-code))
+;;; vim: set ft=lisp lisp:
