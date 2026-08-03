@@ -350,10 +350,11 @@
            (multiple-value-bind (match groups)
                                 (cl-ppcre:scan-to-strings "^(.*?)(\\d+)(\\D*)$" version)
              (if match
-                 (let* ((rest-str (aref groups 1))
-                        (re-num (aref groups 2))
+                 (let* ((rest-str (aref groups 0))
+                        (re-num (aref groups 1))
+                        (trailing (aref groups 2))
                         (num (parse-integer re-num))
-                        (higher-version (format nil "~a~d" rest-str (1+ num)))
+                        (higher-version (format nil "~a~d~a" rest-str (1+ num) trailing))
                         (higher-result (funcall cmp pkg-ver higher-version)))
                    (and (>= cmp-result 0) (< higher-result 0)))
                  nil)))
@@ -401,38 +402,65 @@
   "List packages from a dependency graph.
 
   PACKAGE-GRAPH is a hash table mapping parent packages to children.
-  :root is the special root key.
-  :lazy lists children before parents, :eager lists parents before children."
-  (let ((visited (make-hash-table :test 'equal))
-        (result nil))
-    (labels ((visit (node)
-               (when (gethash node visited)
-                 (return-from visit nil))
-               (setf (gethash node visited) t)
-               (let ((children (remove-if
-                                 (lambda (c)
-                                   (or (gethash c visited)
-                                       (member c exclude :test #'equal)))
-                                 (gethash node package-graph))))
-                 (if (null children)
-                     nil
-                     (progn
-                       (loop for child in children
-                             do (visit child))
-                       (when (and (eql list-strat :eager)
-                                  (not (gethash node visited)))
-                         (push node result))
-                       (setf (gethash node visited) t)
-                       result)))))
-      (visit :root)
-      (if (eql list-strat :lazy)
-          (loop for key being each hash-key of package-graph
-                for val = (gethash key package-graph)
-                when (and (not (eq key :root))
-                          (not (member key exclude :test #'equal))
-                          val)
-                collect key)
-          result))))
+  :root is the special root key mapping to the list of top-level packages.
+  EXCLUDE is a hash table of packages to skip (tested with gethash).
+  :lazy lists children before parents, :eager lists parents before children.
+
+  Follows the Clojure semantics: recursively collects packages from the
+  graph starting at :root, where children of a node are stored as the
+  node's value in the hash table."
+  (labels ((list-pkgs-rec (already-visited parents children-of)
+             (let ((children (remove-if-not
+                               (lambda (p)
+                                 (and (not (gethash p already-visited))
+                                      (not (gethash p exclude))
+                                      (not (gethash p parents))))
+                               (gethash children-of package-graph))))
+               (if (null children)
+                   (list nil (make-hash-table :test 'equal))
+                   (let ((result (reduce
+                                   (lambda (acc v)
+                                     (destructuring-bind (pkg-list visited) acc
+                                       (let ((grandchildren-result
+                                               (list-pkgs-rec
+                                                 visited
+                                                 (let ((p (make-hash-table :test 'equal)))
+                                                   (maphash (lambda (k v) (setf (gethash k p) v)) parents)
+                                                   (setf (gethash v p) t)
+                                                   p)
+                                                 v)))
+                                         (destructuring-bind (grandchildren-list grandchildren-visited)
+                                             grandchildren-result
+                                           (let ((base-pkg-list (append pkg-list grandchildren-list))
+                                                 (base-visited (make-hash-table :test 'equal)))
+                                             (maphash (lambda (k v) (setf (gethash k base-visited) v)) visited)
+                                             (maphash (lambda (k v) (setf (gethash k base-visited) v)) grandchildren-visited)
+                                             (if (and (eql list-strat :eager)
+                                                      (not (gethash v base-visited)))
+                                                 (list (append base-pkg-list (list v))
+                                                       (let ((h (make-hash-table :test 'equal)))
+                                                         (maphash (lambda (k v) (setf (gethash k h) v)) base-visited)
+                                                         (setf (gethash v h) t)
+                                                         h))
+                                                 (list base-pkg-list base-visited)))))))
+                                   children
+                                   :initial-value (list nil (make-hash-table :test 'equal)))))
+                       (if (eql list-strat :lazy)
+                           (let ((visited-from-children (second result))
+                                 (list-from-children (first result)))
+                             (list (append list-from-children
+                                           (remove-if (lambda (c) (gethash c visited-from-children))
+                                                      children))
+                                   (let ((h (make-hash-table :test 'equal)))
+                                     (maphash (lambda (k v) (setf (gethash k h) v)) visited-from-children)
+                                     (dolist (c children) (setf (gethash c h) t))
+                                     h)))
+                           result))))))
+    (first (list-pkgs-rec (make-hash-table :test 'equal)
+                          (let ((h (make-hash-table :test 'equal)))
+                            (setf (gethash :root h) t)
+                            h)
+                          :root))))
 
 ;;; ─── Resolver ───────────────────────────────────────────────────────────────
 
@@ -443,10 +471,13 @@
              always (not (funcall safe-spec-call absent-spec candidate)))))
 
 (defun seek-package (query-results vet)
-  "Seek a package from query results matching the VET predicate."
+  "Seek a package from query results matching the VET predicate.
+  QUERY-RESULTS may be an fset seq (from fset-based repo queries);
+  it is converted to a plain list for CL sequence operations."
   (if (null query-results)
       (list :unsuccessful (list :problem :empty-query-results))
-      (let ((filtered (remove-if-not vet query-results)))
+      (let* ((query-list (fset:convert 'list query-results))
+             (filtered (remove-if-not vet query-list)))
         (if (null filtered)
             (list :unsuccessful (list :problem :unsatisfactory-query-results))
             (list :successful filtered)))))
