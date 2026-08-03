@@ -205,16 +205,17 @@ Use `defgeneric` + `defmethod` only when methods dispatch on multiple types
 
 ### Build & Run
 
+* **Building the executable**:
+
 ```bash
 # Build executable
 ros build com.djhaskin.dsolv.ros
-
-# Run tests
-ros run --load com.djhaskin.dsolv.ros -- test
-
-# Or via ASDF
-ros run -e "(asdf:test-system :com.djhaskin.dsolv/tests)"
 ```
+
+* **Running tests**: Use `cl-mcp` mcp server to run `(asdf:test-system ...)`.
+  NEVER use bash (`ros` or `sbcl`) to call lisp stuff (EXCEPT to call `ros
+  build`). It often ends with the process dropping into the debugger and hosing
+  the session.
 
 ### Critical Rules
 

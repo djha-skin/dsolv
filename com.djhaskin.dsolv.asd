@@ -35,8 +35,11 @@
                )
   :components ((:module "tests"
                 :components
-                ((:file "repo-aggregation"))))
+                ((:file "repo-aggregation")
+                 (:file "util"))))
   :description "Test system for dsolv."
   :perform (asdf:test-op (op c)
                          (uiop:symbol-call :parachute :test
-                                           '#:com.djhaskin.dsolv/tests/repo-aggregation)))
+                                           (list
+                                             '#:com.djhaskin.dsolv/tests/repo-aggregation
+                                             '#:com.djhaskin.dsolv/tests/util))))
