@@ -7,9 +7,11 @@
   (:import-from #:com.djhaskin.dsolv/util)
   (:import-from #:alexandria)
   (:import-from #:cl-ppcre)
+  (:import-from #:fset)
   (:local-nicknames
     (#:util #:com.djhaskin.dsolv/util)
-    (#:resolver #:com.djhaskin.dsolv/resolver))
+    (#:resolver #:com.djhaskin.dsolv/resolver)
+    (#:f #:fset))
   (:export
     ;; Records
     #:make-version-predicate
@@ -309,16 +311,23 @@
             (getf problem :term))
     (terpri out)
     (format out "~a"
-            (explain-package-list
-              (loop for v being each hash-value of (getf problem :found-packages)
-                    append v)
-              "Packages selected"))
+            (let ((found (getf problem :found-packages)))
+              (if found
+                  (explain-package-list
+                    (fset:reduce (lambda (acc key)
+                                  (append acc (fset:lookup found key)))
+                                (fset:domain found)
+                                :initial-value '())
+                    "Packages selected")
+                  "")))
     (let ((present-pkgs (getf problem :present-packages)))
       (when present-pkgs
         (format out "~%~a"
                 (explain-package-list
-                  (loop for v being each hash-value of present-pkgs
-                        append v)
+                  (fset:reduce (lambda (acc key)
+                                (append acc (fset:lookup present-pkgs key)))
+                              (fset:domain present-pkgs)
+                              :initial-value '())
                   "Packages already present"))))
     (let ((alt (getf problem :alternative)))
       (when alt
@@ -401,66 +410,57 @@
 (defun list-packages (package-graph &key (list-strat :lazy) (exclude nil))
   "List packages from a dependency graph.
 
-  PACKAGE-GRAPH is a hash table mapping parent packages to children.
+  PACKAGE-GRAPH is an fset map mapping parent packages to children.
   :root is the special root key mapping to the list of top-level packages.
-  EXCLUDE is a hash table of packages to skip (tested with gethash).
+  EXCLUDE is an fset set of packages to skip.
   :lazy lists children before parents, :eager lists parents before children.
 
   Follows the Clojure semantics: recursively collects packages from the
   graph starting at :root, where children of a node are stored as the
-  node's value in the hash table."
-  (labels ((list-pkgs-rec (already-visited parents children-of)
-             (let ((children (remove-if-not
-                               (lambda (p)
-                                 (and (not (gethash p already-visited))
-                                      (not (gethash p exclude))
-                                      (not (gethash p parents))))
-                               (gethash children-of package-graph))))
-               (if (null children)
-                   (list nil (make-hash-table :test 'equal))
-                   (let ((result (reduce
-                                   (lambda (acc v)
-                                     (destructuring-bind (pkg-list visited) acc
-                                       (let ((grandchildren-result
-                                               (list-pkgs-rec
-                                                 visited
-                                                 (let ((p (make-hash-table :test 'equal)))
-                                                   (maphash (lambda (k v) (setf (gethash k p) v)) parents)
-                                                   (setf (gethash v p) t)
-                                                   p)
-                                                 v)))
-                                         (destructuring-bind (grandchildren-list grandchildren-visited)
-                                             grandchildren-result
-                                           (let ((base-pkg-list (append pkg-list grandchildren-list))
-                                                 (base-visited (make-hash-table :test 'equal)))
-                                             (maphash (lambda (k v) (setf (gethash k base-visited) v)) visited)
-                                             (maphash (lambda (k v) (setf (gethash k base-visited) v)) grandchildren-visited)
-                                             (if (and (eql list-strat :eager)
-                                                      (not (gethash v base-visited)))
-                                                 (list (append base-pkg-list (list v))
-                                                       (let ((h (make-hash-table :test 'equal)))
-                                                         (maphash (lambda (k v) (setf (gethash k h) v)) base-visited)
-                                                         (setf (gethash v h) t)
-                                                         h))
-                                                 (list base-pkg-list base-visited)))))))
-                                   children
-                                   :initial-value (list nil (make-hash-table :test 'equal)))))
-                       (if (eql list-strat :lazy)
-                           (let ((visited-from-children (second result))
-                                 (list-from-children (first result)))
-                             (list (append list-from-children
-                                           (remove-if (lambda (c) (gethash c visited-from-children))
-                                                      children))
-                                   (let ((h (make-hash-table :test 'equal)))
-                                     (maphash (lambda (k v) (setf (gethash k h) v)) visited-from-children)
-                                     (dolist (c children) (setf (gethash c h) t))
-                                     h)))
-                           result))))))
-    (first (list-pkgs-rec (make-hash-table :test 'equal)
-                          (let ((h (make-hash-table :test 'equal)))
-                            (setf (gethash :root h) t)
-                            h)
-                          :root))))
+  node's value in the map."
+  (flet ((get-children (node)
+           (fset:lookup package-graph node)))
+    (labels ((list-pkgs-rec (already-visited parents children-of)
+               (let ((children (remove-if-not
+                                 (lambda (p)
+                                   (and (not (fset:member? p already-visited))
+                                        (not (and exclude (fset:member? p exclude)))
+                                        (not (fset:member? p parents))))
+                                 (get-children children-of))))
+                 (if (null children)
+                     (list nil (fset:empty-set))
+                     (let ((result (reduce
+                                     (lambda (acc v)
+                                       (destructuring-bind (pkg-list visited) acc
+                                         (let ((grandchildren-result
+                                                 (list-pkgs-rec
+                                                   visited
+                                                   (fset:with parents v)
+                                                   v)))
+                                           (destructuring-bind (grandchildren-list grandchildren-visited)
+                                               grandchildren-result
+                                             (let ((base-pkg-list (append pkg-list grandchildren-list))
+                                                   (base-visited (fset:union visited grandchildren-visited)))
+                                               (if (and (eql list-strat :eager)
+                                                        (not (fset:member? v base-visited)))
+                                                   (list (append base-pkg-list (list v))
+                                                         (fset:with base-visited v))
+                                                   (list base-pkg-list base-visited)))))))
+                                     children
+                                     :initial-value (list nil (fset:empty-set)))))
+                         (if (eql list-strat :lazy)
+                             (let ((visited-from-children (second result))
+                                   (list-from-children (first result)))
+                               (list (append list-from-children
+                                             (remove-if (lambda (c) (fset:member? c visited-from-children))
+                                                        children))
+                                     (reduce (lambda (s c) (fset:with s c))
+                                             children
+                                             :initial-value visited-from-children)))
+                             result))))))
+      (first (list-pkgs-rec (fset:empty-set)
+                            (fset:with (fset:empty-set) :root)
+                            :root)))))
 
 ;;; ─── Resolver ───────────────────────────────────────────────────────────────
 
@@ -505,14 +505,17 @@
         (if sug-a
             (if sug-b
                 (setf (getf result :suggestions)
-                      (loop for key being each hash-key of sug-b
-                            using (hash-value val)
-                            if (gethash key sug-a)
-                            do (setf (gethash key sug-a)
-                                     (intersection
-                                       (gethash key sug-a) val))
-                            end
-                            finally (return sug-a)))
+                      ;; Merge two fset maps: shared keys get intersection;
+                      ;; keys only in sug-b get added; keys only in sug-a stay.
+                      (fset:reduce (lambda (merged key)
+                                     (let ((vb (fset:lookup sug-b key))
+                                           (va (fset:lookup sug-a key)))
+                                       (if va
+                                           (fset:with merged key
+                                                      (intersection va vb))
+                                           (fset:with merged key vb))))
+                                   (fset:domain sug-b)
+                                   :initial-value sug-a))
                 (setf (getf result :suggestions) sug-a))
             (setf (getf result :suggestions) sug-b)))
       result)))
@@ -541,7 +544,7 @@
   suggested packages to the remaining candidates."
   (let ((remaining candidates)
         (failure-record nil)
-        (examined (make-hash-table :test 'equal)))
+        (examined (fset:empty-set)))
     (loop
       (if (null remaining)
           (return (list :unsuccessful failure-record))
@@ -549,7 +552,7 @@
                  (rcand (rest remaining))
                  (id (pi-id fcand))
                  (response (funcall try-candidate fcand)))
-            (setf (gethash fcand examined) t)
+            (setf examined (fset:with examined fcand))
             (if (eql (first response) :successful)
                 (return response)
                 (let ((result (second response)))
@@ -558,12 +561,12 @@
                   (setf remaining
                         (let ((suggestions (getf result :suggestions)))
                           (if suggestions
-                              (let ((relevant (gethash id suggestions)))
+                              (let ((relevant (fset:lookup suggestions id)))
                                 (if relevant
                                     (append
                                       (remove-if-not
                                         (lambda (y)
-                                          (and (not (gethash y examined))
+                                          (and (not (fset:member? y examined))
                                                (funcall vet y)))
                                         relevant)
                                       rcand)
@@ -580,9 +583,9 @@
         (loop for alt in alternatives
               do (let ((id (req-id alt)))
                    (cond
-                     ((gethash id absent-specs) (push alt absent))
-                     ((or (gethash id found-packages)
-                          (gethash id present-packages))
+                     ((fset:lookup absent-specs id) (push alt absent))
+                     ((or (fset:lookup found-packages id)
+                          (fset:lookup present-packages id))
                       (push alt present))
                      (t (push alt unspecified)))))
         (append (reverse absent)
@@ -630,7 +633,8 @@
                               (loop for alternative in hoisted
                                     collect
                                     (resolve-alternative
-                                      alternative mkerror rclauses parent))))
+                                      alternative mkerror rclauses parent
+                                      found-packages absent-specs package-graph))))
                        (or (some (lambda (r)
                                    (when (eql (first r) :successful) r))
                                  clause-result)
@@ -638,21 +642,22 @@
                                  (reduce #'merge-failure-records
                                          (mapcar #'second clause-result)
                                          :initial-value nil))))))))
-         (resolve-alternative (alternative mkerror rclauses parent)
-           "Resolve a single alternative.  All strategy arguments and
-            REPO, PRESENT-PACKAGES, FOUND-PACKAGES, ABSENT-SPECS,
-            PACKAGE-GRAPH, RESOLVE-DEPS are captured by closure.
-            PARENT is passed explicitly since it is bound in the
-            RESOLVE-DEPS let* and not in the labels enclosing scope."
+         (resolve-alternative (alternative mkerror rclauses parent
+                                 found-packages absent-specs package-graph)
+           "Resolve a single alternative.  FOUND-PACKAGES, ABSENT-SPECS,
+            and PACKAGE-GRAPH are passed explicitly so they reflect the
+            current recursion state, not the initial values from the outer
+            lambda's closure.  REPO and PRESENT-PACKAGES are captured by
+            closure (they never change during recursion)."
            (let* ((status (req-status alternative))
                   (id (req-id alternative))
                   (spec (req-spec alternative))
                   (vet (lambda (candidate)
                          (vet-candidate
-                           (gethash id absent-specs)
+                           (fset:lookup absent-specs id)
                            safe-spec-call spec candidate)))
-                  (present-id-packages (gethash id present-packages))
-                  (found-id-packages (gethash id found-packages))
+                  (present-id-packages (fset:lookup present-packages id))
+                  (found-id-packages (fset:lookup found-packages id))
                   (present-package
                     (when present-id-packages
                       (if (eql conflict-strat :prioritized)
@@ -690,9 +695,7 @@
                                      :package-present-by :found
                                      :suggestion-attempt :successful)
                                :suggestions
-                               (let ((h (make-hash-table :test 'equal)))
-                                 (setf (gethash id h) (second seek-result))
-                                 h))
+                               (fset:with (fset:empty-map) id (second seek-result)))
                       (funcall mkerror :present-package-conflict
                                :additional
                                (list :alternative alternative
@@ -733,28 +736,22 @@
                (t nil)))))
       (resolve-deps found-packages absent-specs clauses package-graph))))
                             (defun update-package-graph (graph parent child)
-  "Add CHILD as a dependency of PARENT in the graph."
-  (let ((children (gethash parent graph)))
-    (if children
-        (setf (gethash parent graph) (append children (list child)))
-        (setf (gethash parent graph) (list child))))
-  graph)
+  "Add CHILD as a dependency of PARENT in the graph.
+  Returns a new fset map; the original is unchanged."
+  (fset:with graph parent
+             (append (or (fset:lookup graph parent) '()) (list child))))
 
 (defun update-spec (absent-specs id spec)
-  "Add SPEC to the absent specs for ID."
-  (let ((existing (gethash id absent-specs)))
-    (if existing
-        (setf (gethash id absent-specs) (append existing (list spec)))
-        (setf (gethash id absent-specs) (list spec))))
-  absent-specs)
+  "Add SPEC to the absent specs for ID.
+  Returns a new fset map; the original is unchanged."
+  (fset:with absent-specs id
+             (append (or (fset:lookup absent-specs id) '()) (list spec))))
 
 (defun update-package (found-packages id candidate)
-  "Add CANDIDATE to the found packages for ID."
-  (let ((existing (gethash id found-packages)))
-    (if existing
-        (setf (gethash id found-packages) (append existing (list candidate)))
-        (setf (gethash id found-packages) (list candidate))))
-  found-packages)
+  "Add CANDIDATE to the found packages for ID.
+  Returns a new fset map; the original is unchanged."
+  (fset:with found-packages id
+             (append (or (fset:lookup found-packages id) '()) (list candidate))))
 
 ;;; ─── Install graph ──────────────────────────────────────────────────────────
 
@@ -762,27 +759,27 @@
   "Create an install graph from the package resolution graph.
 
   HANDLE is a function that maps a package to a string identifier."
-  (let ((result (make-hash-table :test 'equal)))
-    (loop for key being each hash-key of package-graph
-          for val = (gethash key package-graph)
-          do
-          (when (and (not (eq key :root)) (pi-id key))
-            (let* ((handle-val (funcall handle key))
-                   (entry (list :name (pi-id key)
-                                :version (pi-version key)
-                                :location (pi-location key)
-                                :dependees
-                                (loop for child in val
-                                      collect (funcall handle child)))))
-              (setf (gethash handle-val result) entry))))
-    result))
+  (fset:reduce (lambda (result key)
+                 (let ((val (fset:lookup package-graph key)))
+                   (if (and (not (eq key :root)) (pi-id key))
+                       (let* ((handle-val (funcall handle key))
+                              (entry (list :name (pi-id key)
+                                           :version (pi-version key)
+                                           :location (pi-location key)
+                                           :dependees
+                                           (loop for child in val
+                                                 collect (funcall handle child)))))
+                         (fset:with result handle-val entry))
+                       result)))
+               (fset:domain package-graph)
+               :initial-value (fset:empty-map)))
 
 ;;; ─── Main resolver entry point ──────────────────────────────────────────────
 
 (defun resolve-dependencies-deluxe
        (requirements query
-        &key (present-packages (make-hash-table :test 'equal))
-        (conflicts (make-hash-table :test 'equal))
+        &key (present-packages (fset:empty-map))
+        (conflicts (fset:empty-map))
         (strategy :thorough)
         (conflict-strat :exclusive)
         (compare nil)
@@ -818,17 +815,18 @@
                                          :clause clause :parent :root)))
          (result (funcall resolve-deps query
                           present-packages
-                          (make-hash-table :test 'equal)
+                          (fset:empty-map)
                           conflicts
                           decorated-reqs
-                          (make-hash-table :test 'equal))))
+                          (fset:empty-map))))
     (if (eql (first result) :successful)
         (let ((graph (second result))
-              (exclude-set (make-hash-table :test 'equal)))
+              (exclude-set (fset:empty-set)))
           ;; Build exclude set from present packages
-          (loop for pkgs being each hash-value of present-packages
-                do (loop for pkg in pkgs
-                         do (setf (gethash pkg exclude-set) t)))
+          (fset:do-map (id pkgs present-packages)
+                       (declare (ignore id))
+                       (loop for pkg in pkgs
+                             do (setf exclude-set (fset:with exclude-set pkg))))
           (list :result :successful
                 :packages
                 (if (eql list-strat :as-set)
