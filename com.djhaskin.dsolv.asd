@@ -39,7 +39,8 @@
                 ((:file "repo-aggregation")
                  (:file "util")
                  (:file "string-to-req")
-               (:file "data-spec"))))
+                 (:file "data-spec")
+                 (:file "core"))))
   :description "Test system for dsolv."
   :perform (asdf:test-op (op c)
                          (uiop:symbol-call :parachute :test
@@ -47,4 +48,5 @@
                                              '#:com.djhaskin.dsolv/tests/repo-aggregation
                                              '#:com.djhaskin.dsolv/tests/util
                                              '#:com.djhaskin.dsolv/tests/string-to-req
-                                            '#:com.djhaskin.dsolv/tests/data-spec))))
+                                             '#:com.djhaskin.dsolv/tests/data-spec
+                                             '#:com.djhaskin.dsolv/tests/core))))
