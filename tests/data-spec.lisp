@@ -115,7 +115,7 @@
     (true (successful-result result))
     (let* ((packages (successful-result result))
            (locations (f:convert 'f:set (mapcar #'pkg-loc packages))))
-      (true (f:empty? (f:set-difference locations expected-locations))))))
+      (true (f:equal? locations expected-locations)))))
 
 ;;; ─── Range spec cases ───────────────────────────────────────────────────────
 
@@ -137,19 +137,22 @@
                    (list (list (present "b" range-spec)))
                    query-asc :compare #'maven-vercmp)))
       (true (successful-result result))
-      (true (find b3 (successful-result result) :test #'equal)))
+      (true (f:equal? (f:convert 'f:set (successful-result result))
+                      (f:with (f:empty-set) b3))))
     ;; range end exclusive
     (let ((result (resolve-dependencies
                    (list (list (present "b" range-spec)))
                    query-desc :compare #'maven-vercmp)))
       (true (successful-result result))
-      (true (find b35 (successful-result result) :test #'equal)))
+      (true (f:equal? (f:convert 'f:set (successful-result result))
+                      (f:with (f:empty-set) b35))))
     ;; sub range
     (let ((result (resolve-dependencies
                    (list (list (present "b" sub-range-spec)))
                    query-asc :compare #'maven-vercmp)))
       (true (successful-result result))
-      (true (find b35 (successful-result result) :test #'equal)))))
+      (true (f:equal? (f:convert 'f:set (successful-result result))
+                      (f:with (f:empty-set) b35))))))
 
 ;;; ─── Data spec cases ────────────────────────────────────────────────────────
 

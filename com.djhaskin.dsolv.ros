@@ -14,4 +14,8 @@
 (require :asdf)
 (asdf:load-system :com.djhaskin.dsolv)
 
-(com.djhaskin.dsolv:main)
+(sb-ext:exit
+  :code
+    (nth-value
+      0
+      (com.djhaskin.dsolv:main)))

@@ -148,3 +148,18 @@
                 (make-version-predicate :relation :less-equal :version "4.0.0"))
           (list (make-version-predicate :relation :greater-equal :version "6.0.0")
                 (make-version-predicate :relation :less-than :version "7.0.0")))))))
+
+(define-test test-string-to-requirement-prints
+  :parent nil
+  ;; Matching prints
+  (is string= "a<>f[ea]{2}ture"
+    (princ-to-string (present "a"
+      (list (list (make-version-predicate
+                    :relation :matches
+                    :version "f[ea]{2}ture"))))))
+  ;; Range prints
+  (is string= "a=>3"
+    (princ-to-string (present "a"
+      (list (list (make-version-predicate
+                    :relation :in-range
+                    :version "3")))))))

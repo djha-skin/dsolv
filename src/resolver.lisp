@@ -16,8 +16,8 @@
     ;; Records
     #:make-version-predicate
     #:version-predicate
-    #:version-predicate-relation
-    #:version-predicate-version
+    #:vp-relation
+    #:vp-version
     #:make-requirement
     #:requirement
     #:requirement-status
