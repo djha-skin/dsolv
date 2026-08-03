@@ -40,7 +40,18 @@
                  (:file "util")
                  (:file "string-to-req")
                  (:file "data-spec")
-                 (:file "core"))))
+                 (:file "core")
+                 (:file "auxiliary-funcs")
+                 (:file "list-packages")
+                 (:file "interesting-cases")
+                 (:file "conflict-strat")
+                 (:file "disable-alternatives")
+                 (:file "performance")
+                 (:file "search-strat")
+                 (:file "unsuccessful")
+                 (:file "version-suggestions")
+                 (:file "apt")
+                 (:file "subproc"))))
   :description "Test system for dsolv."
   :perform (asdf:test-op (op c)
                          (uiop:symbol-call :parachute :test
@@ -49,4 +60,15 @@
                                              '#:com.djhaskin.dsolv/tests/util
                                              '#:com.djhaskin.dsolv/tests/string-to-req
                                              '#:com.djhaskin.dsolv/tests/data-spec
-                                             '#:com.djhaskin.dsolv/tests/core))))
+                                             '#:com.djhaskin.dsolv/tests/core
+                                             '#:com.djhaskin.dsolv/tests/auxiliary-funcs
+                                             '#:com.djhaskin.dsolv/tests/list-packages
+                                             '#:com.djhaskin.dsolv/tests/interesting-cases
+                                             '#:com.djhaskin.dsolv/tests/conflict-strat
+                                             '#:com.djhaskin.dsolv/tests/disable-alternatives
+                                             '#:com.djhaskin.dsolv/tests/performance
+                                             '#:com.djhaskin.dsolv/tests/search-strat
+                                             '#:com.djhaskin.dsolv/tests/unsuccessful
+                                             '#:com.djhaskin.dsolv/tests/version-suggestions
+                                             '#:com.djhaskin.dsolv/tests/apt
+                                             '#:com.djhaskin.dsolv/tests/subproc))))

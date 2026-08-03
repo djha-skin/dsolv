@@ -66,9 +66,9 @@
   "Create a present clause with optional version predicates.
   Usage: (present-spec \"a\" vp1 vp2)  → clause requiring 'a' matching ALL predicates
          (present-spec \"a\")           → clause requiring 'a' at any version"
-  (list (apply #'present id
-               (when version-predicates
-                 (list (list version-predicates))))))
+  (list (present id
+                 (when version-predicates
+                   (list version-predicates)))))
 
 (defun absent-spec (id)
   "Create an absent clause."

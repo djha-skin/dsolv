@@ -149,7 +149,7 @@
                         (relevant-lines
                           (remove-if-not
                             (lambda (line)
-                              (cl-ppcre:scan "^[[:alnum:]]+:.*" line))
+                              (cl-ppcre:scan "^[a-zA-Z0-9]+:.*" line))
                             lines)))
                    (when relevant-lines
                      (let* ((pkg-map (lines-to-map relevant-lines))

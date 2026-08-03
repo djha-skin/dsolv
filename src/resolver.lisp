@@ -650,19 +650,29 @@
                                       (funcall cull-alternatives clause)
                                       absent-specs found-packages
                                       present-packages))
-                            (clause-result
-                              (loop for alternative in hoisted
-                                    collect
-                                    (resolve-alternative
-                                      alternative mkerror rclauses parent
-                                      found-packages absent-specs package-graph))))
-                       (or (some (lambda (r)
-                                   (when (eql (first r) :successful) r))
-                                 clause-result)
-                           (list :unsuccessful
-                                 (reduce #'merge-failure-records
-                                         (mapcar #'second clause-result)
-                                         :initial-value nil))))))))
+(clause-result
+                              ;; Short-circuit: evaluate alternatives lazily,
+                              ;; stopping at the first successful result.
+                              ;; This mirrors Clojure's lazy `for` + `some`
+                              ;; pattern, critical for NP-complete performance.
+                              (let ((failures '()))
+                                (or (loop for alternative in hoisted
+                                          thereis
+                                          (let ((result
+                                                  (resolve-alternative
+                                                    alternative mkerror rclauses
+                                                    parent found-packages
+                                                    absent-specs package-graph)))
+                                            (if (eql (first result) :successful)
+                                                result
+                                                (progn
+                                                  (push (second result) failures)
+                                                  nil))))
+                                    (list :unsuccessful
+                                          (reduce #'merge-failure-records
+                                                  (nreverse failures)
+                                                  :initial-value nil))))))
+                       clause-result)))))
          (resolve-alternative (alternative mkerror rclauses parent
                                  found-packages absent-specs package-graph)
            "Resolve a single alternative.  FOUND-PACKAGES, ABSENT-SPECS,
