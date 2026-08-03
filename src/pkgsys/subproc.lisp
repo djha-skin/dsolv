@@ -1,43 +1,33 @@
 ;;;; src/pkgsys/subproc.lisp
 ;;;;
-;;;; Subprocess package system integration. Calls an external executable to
-;;;; obtain package repository data.
+;;;; Subprocess package system: calling external executables to get
+;;;; package data.
+;;;;
+;;;; Ported from degasolv's cli-src/degasolv/pkgsys/subproc.clj
 
 (defpackage #:com.djhaskin.dsolv/pkgsys/subproc
   (:use #:cl)
-  (:import-from #:com.djhaskin.dsolv/util)
-  (:import-from #:com.djhaskin.dsolv/resolver)
-  (:import-from #:com.djhaskin.cliff)
+  (:import-from #:com.djhaskin.dsolv/resolver
+    #:package-info #:pi-id #:pi-version #:pi-location #:pi-requirements
+    #:make-package-info #:string-to-requirement)
+  (:import-from #:com.djhaskin.dsolv/util
+    #:map-query)
+  (:import-from #:fset)
   (:local-nicknames
-    (#:util #:com.djhaskin.dsolv/util)
-    (#:resolver #:com.djhaskin.dsolv/resolver)
-    (#:cliff #:com.djhaskin.cliff))
+    (#:f #:fset)
+    (#:resolver #:com.djhaskin.dsolv/resolver))
   (:export
+    #:convert-input
     #:make-slurper))
 
 (in-package #:com.djhaskin.dsolv/pkgsys/subproc)
 
 (defun convert-input (raw-repo-info)
-  "Convert raw repository info (a hash table from NRDL/JSON) into
-  a hash table of package lists."
-  (let ((result (make-hash-table :test 'equal)))
-    (loop for package-name being each hash-key of raw-repo-info
-          using (hash-value package-list)
-          do
-          (setf (gethash package-name result)
-                (loop for pkg in package-list
-                      collect
-                      (let* ((id (getf pkg :id))
-                             (version (getf pkg :version))
-                             (location (getf pkg :location))
-                             (requirements (getf pkg :requirements))
-                             (converted-reqs (when requirements
-                                               (mapcar
-                                                 #'resolver:string-to-requirement
-                                                 requirements))))
-                        (resolver:make-package-info
-                          :id id
-                          :version version
-                          :location location
-                          :requirements converted-reqs))))))
-  result)
+  "Convert raw repository info (from external executable) to an fset map."
+  (declare (ignore raw-repo-info))
+  (error "convert-input not yet implemented"))
+
+(defun make-slurper (options)
+  "Create a repository slurper function that calls an external executable."
+  (declare (ignore options))
+  (error "make-slurper not yet implemented"))

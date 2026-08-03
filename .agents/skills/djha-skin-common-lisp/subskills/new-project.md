@@ -20,7 +20,8 @@ it is a command line tool or a library.
    within the folder created by this step.
 
 
-2. Run `qlot init` within that folder.
+2. Run `ocicl setup` if you haven't already, then `ocicl install` to install
+   dependencies as they are added to the `ocicl.csv` file.
 
 3. Create an file named `com.djhaskin.<name-of-the-repository>` for ASDF. Name
    the project `"com.djhaskin.<name-of-the-repository>"`. Use strings, not

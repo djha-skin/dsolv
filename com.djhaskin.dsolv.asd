@@ -7,9 +7,10 @@
                "com.djhaskin.nrdl"
                "alexandria"
                "cl-ppcre"
+               "fset"
                "dexador"
                "quri"
-)
+               )
   :components ((:module "src"
                 :components
                 ((:file "util")
@@ -34,8 +35,8 @@
                )
   :components ((:module "tests"
                 :components
-                ((:file "main"))))
+                ((:file "repo-aggregation"))))
   :description "Test system for dsolv."
   :perform (asdf:test-op (op c)
                          (uiop:symbol-call :parachute :test
-                                           :com.djhaskin.dsolv/tests)))
+                                           '#:com.djhaskin.dsolv/tests/repo-aggregation)))

@@ -71,6 +71,21 @@ Please note the following style guidelines:
   `repl-eval`, `run-tests`, `lisp-check-parens`, `code-find`, `code-describe`,
   `code-find-references`).
 
+* Use **OCICL** for package management, NOT Qlot or Quicklisp (`ql:quickload`).
+  OCICL packages systems as OCI-compliant artifacts distributed via container
+  registries. Systems are project-local by default.
+
+  * `ocicl install` — install all systems from `ocicl.csv`
+  * `ocicl install <system>` — install a specific system
+  * `ocicl list <system>` — see available versions
+  * `ocicl latest` — update all systems to latest
+  * `ocicl setup` — install ocicl-runtime and configure your Lisp init file
+  * `ocicl lint <path>` — lint Common Lisp files
+
+  The `ocicl.csv` file in the project root tracks which systems and versions
+  are used. Commit it to version control; never commit the `ocicl/` directory
+  (which contains downloaded system code).
+
 * No trailing whitespace, ever.
 
 * Keep a changelog in `CHANGELOG.md` in the root folder. For each version bump,

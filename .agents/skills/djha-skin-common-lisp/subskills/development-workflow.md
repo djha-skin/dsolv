@@ -44,12 +44,12 @@ Bear in mind, we use the following tools:
   `lisp-patch-form`, `lisp-read-file`, `repl-eval`, `run-tests`,
   `lisp-check-parens`, `code-find`, `code-describe`, `code-find-references`).
 
-* Roswell. `ros init` to make roswell scripts, `ros build` to build
-  executables. `ros build` resolves dependencies via qlot when the qlfile is
-  present; use `qlot` to manage dependencies before building.
+* **OCICL** for package management. Run `ocicl install` to install all systems
+  listed in `ocicl.csv`. Systems are downloaded project-locally. Do NOT use
+  Qlot (`qlot`) or Quicklisp (`ql:quickload`).
 
-* Qlot. `qlot init` to initialize dep lists, `qlot add` to add dependencies to
-  qlfiles, etc.
+* Roswell. `ros init` to make roswell scripts, `ros build` to build executables.
+  Dependencies are resolved via OCICL, not Qlot.
 
 * For testing, use `run-tests` from the cl-mcp server (which calls
   `(asdf:test-system "com.djhaskin.<name-of-the-repository>")` internally).

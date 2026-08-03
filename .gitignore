@@ -4,3 +4,7 @@
 .dolt/
 *.db
 .beads-credential-key
+
+# Compiled Lisp files
+*.fasl
+*.fasl.gz
