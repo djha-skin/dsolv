@@ -8,3 +8,4 @@
 # Compiled Lisp files
 *.fasl
 *.fasl.gz
+.DS_Store
