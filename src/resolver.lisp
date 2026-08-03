@@ -88,6 +88,25 @@
   (location "" :type string)
   (requirements nil :type (or null list)))
 
+;;; ─── Print methods for structs ───────────────────────────────────────────────
+
+(defmethod print-object ((obj version-predicate) stream)
+  (let ((relation-str (cdr (assoc (vp-relation obj) *relation-strings*))))
+    (format stream "~a~a" relation-str (vp-version obj))))
+
+(defmethod print-object ((obj requirement) stream)
+  (when (eql (req-status obj) :absent)
+    (write-char #\! stream))
+  (princ (req-id obj) stream)
+  (when (req-spec obj)
+    (loop for conj in (req-spec obj)
+          for first-disj = t then nil
+          do (unless first-disj (write-char #\; stream))
+          (loop for vp in conj
+                for first-conj = t then nil
+                do (unless first-conj (write-char #\, stream))
+                (print-object vp stream)))))
+
 ;;; ─── Constants ──────────────────────────────────────────────────────────────
 
 (defparameter *relation-strings*
@@ -421,12 +440,14 @@
   (flet ((get-children (node)
            (fset:lookup package-graph node)))
     (labels ((list-pkgs-rec (already-visited parents children-of)
-               (let ((children (remove-if-not
-                                 (lambda (p)
-                                   (and (not (fset:member? p already-visited))
-                                        (not (and exclude (fset:member? p exclude)))
-                                        (not (fset:member? p parents))))
-                                 (get-children children-of))))
+               (let* ((raw-children (get-children children-of))
+                      (children (when raw-children
+                                  (remove-if-not
+                                    (lambda (p)
+                                      (and (not (fset:member? p already-visited))
+                                           (not (and exclude (fset:member? p exclude)))
+                                           (not (fset:member? p parents))))
+                                    (fset:convert 'list raw-children)))))
                  (if (null children)
                      (list nil (fset:empty-set))
                      (let ((result (reduce
@@ -447,7 +468,7 @@
                                                          (fset:with base-visited v))
                                                    (list base-pkg-list base-visited)))))))
                                      children
-                                     :initial-value (list nil (fset:empty-set)))))
+                                     :initial-value (list nil already-visited))))
                          (if (eql list-strat :lazy)
                              (let ((visited-from-children (second result))
                                    (list-from-children (first result)))

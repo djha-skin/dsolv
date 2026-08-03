@@ -164,6 +164,13 @@
 
 (define-test present-packages
   :parent nil
+  ;; Asking to install a package twice (duplicate clauses) succeeds.
+  (let ((result (resolve-dependencies
+                  (list (present-spec "c") (present-spec "c"))
+                  *query*
+                  :compare #'maven-vercmp)))
+    (true (successful-result result))
+    (true (find *pkg-c10* (successful-result result) :test #'equal)))
   ;; Installing an already-present package returns empty (nothing new to install).
   (let ((result (resolve-dependencies
                   (list (present-spec "c"))
@@ -223,12 +230,17 @@
                   :compare #'maven-vercmp)))
     (true (unsuccessful-p result)))
   ;; Conflict version-specific: 'd' conflicts with packages < version 22
+  ;; The conflicts map value is a list of specs, where each spec is a list of
+  ;; disjunctions (each disjunction being a list of conjunctions of version predicates).
+  ;; A single vp like (make-version-predicate :less-than "22") becomes:
+  ;;   (((make-version-predicate ...)))  → one disjunction, one conjunction, one vp
   (let ((result (resolve-dependencies
                   (list (present-spec "d"))
                   *query*
                   :conflicts (f:with (f:empty-map) "d"
                                 (list (list (list (make-version-predicate
-                                                    :relation :less-than :version "22")))))
+                                                    :relation :less-than
+                                                    :version "22")))))
                   :compare #'maven-vercmp)))
     (true (successful-result result))
     (true (find *pkg-d22* (successful-result result) :test #'equal))))
