@@ -1,0 +1,16 @@
+{
+  "nextId": 2,
+  "tasks": [
+    {
+      "id": "1",
+      "subject": "Fix closure capture: thread state through resolve-alternative",
+      "description": "Change resolve-alternative's signature to take found-packages, absent-specs, and package-graph as explicit params. Update the call site in resolve-deps to pass current values. This fixes the closure-capture bug in make-resolve-deps.",
+      "status": "pending",
+      "metadata": {},
+      "blocks": [],
+      "blockedBy": [],
+      "createdAt": 1785781162262,
+      "updatedAt": 1785781162262
+    }
+  ]
+}
