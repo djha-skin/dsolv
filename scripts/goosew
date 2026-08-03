@@ -12,12 +12,13 @@
 
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-MCP_CONFIG="$PROJECT_ROOT/.pi/mcp.json"
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+project_root="$(cd "$script_dir/.." && pwd)"
+mcp_config="$project_root/.agents/mcp.json"
+export GOOSE_MOIM_MESSAGE_FILE=$project_root/.agents/top-of-mind.md
 
-if [ ! -f "$MCP_CONFIG" ]; then
-  echo "Error: $MCP_CONFIG not found." >&2
+if [ ! -f "$mcp_config" ]; then
+  echo "Error: $mcp_config not found." >&2
   echo "Run this script from within the dsolv project tree." >&2
   exit 1
 fi
@@ -29,7 +30,7 @@ fi
 # We use jq if available, otherwise fall back to a grep/sed approach.
 if command -v jq &>/dev/null; then
   mapfile -t EXT_URLS < <(
-    jq -r '.mcpServers // {} | to_entries[] | select(.value.url) | .value.url' "$MCP_CONFIG"
+    jq -r '.mcpServers // {} | to_entries[] | select(.value.url) | .value.url' "$mcp_config"
   )
 else
   # Crude fallback — extract url values from the JSON
@@ -39,24 +40,24 @@ else
     if [ -n "$url" ]; then
       EXT_URLS+=("$url")
     fi
-  done < <(grep -o '"url"[[:space:]]*:[[:space:]]*"[^"]*"' "$MCP_CONFIG")
+  done < <(grep -o '"url"[[:space:]]*:[[:space:]]*"[^"]*"' "$mcp_config")
 fi
 
 if [ ${#EXT_URLS[@]} -eq 0 ]; then
-  echo "Error: No streamable HTTP extension URLs found in $MCP_CONFIG." >&2
+  echo "Error: No streamable HTTP extension URLs found in $mcp_config." >&2
   exit 1
 fi
 
 # Build the goose command with all extension URLs
-GOOSE_CMD=(goose session)
+goose_cmd=(goose session)
 
 for url in "${EXT_URLS[@]}"; do
-  GOOSE_CMD+=(--with-streamable-http-extension "$url")
+  goose_cmd+=(--with-streamable-http-extension "$url")
 done
 
 # Append any user-provided arguments
 if [ $# -gt 0 ]; then
-  GOOSE_CMD+=("$@")
+  goose_cmd+=("$@")
 fi
 
 echo "🚀 goosew — launching goose with cl-mcp extension(s):" >&2
@@ -65,4 +66,4 @@ for url in "${EXT_URLS[@]}"; do
 done
 echo >&2
 
-exec "${GOOSE_CMD[@]}"
+exec "${goose_cmd[@]}"

@@ -350,12 +350,10 @@
            (multiple-value-bind (match groups)
                                 (cl-ppcre:scan-to-strings "^(.*?)(\\d+)(\\D*)$" version)
              (if match
-                 (let* ((re-num (aref groups 1))
+                 (let* ((rest-str (aref groups 1))
+                        (re-num (aref groups 2))
                         (num (parse-integer re-num))
-                        (higher-version (format nil "~a~d~a"
-                                                (aref groups 0)
-                                                (1+ num)
-                                                (aref groups 2)))
+                        (higher-version (format nil "~a~d" rest-str (1+ num)))
                         (higher-result (funcall cmp pkg-ver higher-version)))
                    (and (>= cmp-result 0) (< higher-result 0)))
                  nil)))
@@ -381,18 +379,21 @@
           (t nil)))))
 
 (defun make-spec-call (cmp)
-  "Create a spec-calling function using the given comparator CMP."
+  "Create a spec-calling function using the given comparator CMP.
+  When CMP is nil, all specs are satisfied (no comparison available)."
   (lambda (spec pkg)
-    (if (null spec)
+    (if (null cmp)
         t
-        (let ((pkg-ver (pi-version pkg)))
-          (some (lambda (disjunction)
-                  (every (lambda (vp)
-                           (make-comparison cmp pkg-ver
-                                            (vp-relation vp)
-                                            (vp-version vp)))
-                         disjunction))
-                spec)))))
+        (if (null spec)
+            t
+            (let ((pkg-ver (pi-version pkg)))
+              (some (lambda (disjunction)
+                      (every (lambda (vp)
+                               (make-comparison cmp pkg-ver
+                                                (vp-relation vp)
+                                                (vp-version vp)))
+                             disjunction))
+                    spec))))))
 
 ;;; ─── Package listing ────────────────────────────────────────────────────────
 
@@ -502,19 +503,41 @@
               (list :problems (list problem))))))
 
 (defun try-candidates (try-candidate vet candidates)
-  "Try each candidate in order, returning the first successful result."
-  (let ((failure-record nil)
+  "Try each candidate in order, returning the first successful result.
+
+  Follows the Clojure semantics: on failure, checks for suggestions from
+  the failure record and prepends relevant (not-yet-examined, vet-passing)
+  suggested packages to the remaining candidates."
+  (let ((remaining candidates)
+        (failure-record nil)
         (examined (make-hash-table :test 'equal)))
-    (loop for candidate in candidates
-          do (setf (gethash candidate examined) t)
-          do (multiple-value-bind (status result)
-                                  (funcall try-candidate candidate)
-               (if (eql status :successful)
-                   (return (list :successful result))
-                   (setf failure-record
-                         (merge-failure-records
-                           failure-record result))))
-          finally (return (list :unsuccessful failure-record)))))
+    (loop
+      (if (null remaining)
+          (return (list :unsuccessful failure-record))
+          (let* ((fcand (first remaining))
+                 (rcand (rest remaining))
+                 (id (pi-id fcand))
+                 (response (funcall try-candidate fcand)))
+            (setf (gethash fcand examined) t)
+            (if (eql (first response) :successful)
+                (return response)
+                (let ((result (second response)))
+                  (setf failure-record
+                        (merge-failure-records failure-record result))
+                  (setf remaining
+                        (let ((suggestions (getf result :suggestions)))
+                          (if suggestions
+                              (let ((relevant (gethash id suggestions)))
+                                (if relevant
+                                    (append
+                                      (remove-if-not
+                                        (lambda (y)
+                                          (and (not (gethash y examined))
+                                               (funcall vet y)))
+                                        relevant)
+                                      rcand)
+                                    rcand))
+                              rcand))))))))))
 
 (defun hoist (alternatives absent-specs found-packages present-packages)
   "Reorder alternatives: absent first, then present, then unspecified."
@@ -535,140 +558,150 @@
                 (reverse present)
                 (reverse unspecified)))))
 
-(defun resolve-deps (repo present-packages found-packages absent-specs
-                  clauses package-graph)
-  "Recursive resolver function."
-  (if (null clauses)
-      (list :successful package-graph)
-      (let* ((fclause (first clauses))
-             (rclauses (rest clauses))
-             (clause (dr-clause fclause))
-             (parent (dr-parent fclause))
-             (mkerror (lambda (reason &key suggestions additional)
-                        (make-error present-packages
-                                    found-packages absent-specs
-                                    clause reason
-                                    :suggestions suggestions
-                                    :additional additional))))
-        (if (null clause)
-            (funcall mkerror :empty-alternative-set)
-            (let* ((clause-result
-                    (loop for alternative in clause
-                          collect
-                          (resolve-alternative
-                           alternative repo present-packages
-                           found-packages absent-specs
-                           rclauses package-graph parent)))
-                   (hoisted (hoist (funcall cull-alternatives clause)
-                                   absent-specs found-packages
-                                   present-packages)))
-              (or (some (lambda (r)
-                          (when (eql (first r) :successful) r))
-                        clause-result)
-                  (list :unsuccessful
-                        (reduce #'merge-failure-records
-                                (mapcar #'second clause-result)
-                                :initial-value nil))))))))
-
 (defun make-resolve-deps (conflict-strat concat-reqs safe-spec-call
                           cull cull-alternatives)
-  "Create a resolver function with the given strategy."
+  "Create a resolver function with the given strategy.
+
+  Returns a closure of 6 arguments (repo present-packages found-packages
+  absent-specs clauses package-graph) that performs recursive dependency
+  resolution.  Strategy arguments (conflict-strat, concat-reqs, safe-spec-call,
+  cull, cull-alternatives) are captured by the closure, matching the Clojure
+  pattern where make-resolve-deps returns resolve-deps with strategy baked in."
   (lambda (repo present-packages found-packages absent-specs
            clauses package-graph)
-    (resolve-deps repo present-packages found-packages absent-specs
-                  clauses package-graph)))
-
-(defun resolve-alternative (alternative repo present-packages found-packages
-                             absent-specs rclauses package-graph parent
-                             conflict-strat safe-spec-call cull
-                             concat-reqs mkerror resolve-deps)
-  "Resolve a single alternative in a dependency clause.
-  RESOLVE-DEPS is the recursive resolver function to call for sub-dependencies."
-  (let* ((status (req-status alternative))
-         (id (req-id alternative))
-         (spec (req-spec alternative))
-         (vet (lambda (candidate)
-                (vet-candidate
-                  (gethash id absent-specs)
-                  safe-spec-call spec candidate)))
-         (present-id-packages (gethash id present-packages))
-         (found-id-packages (gethash id found-packages))
-         (present-package
-           (when present-id-packages
-             (if (eql conflict-strat :prioritized)
-                 (car present-id-packages)
-                 (present-packages-satisfies-p
-                   present-id-packages spec safe-spec-call status))))
-         (found-package
-           (when found-id-packages
-             (if (eql conflict-strat :prioritized)
-                 (car found-id-packages)
-                 (present-packages-satisfies-p
-                   found-id-packages spec safe-spec-call status)))))
-    (cond
-      (present-package
-       (funcall resolve-deps resolve-deps repo present-packages found-packages absent-specs
-                rclauses
-                (update-package-graph package-graph parent present-package)))
-      (found-package
-       (funcall resolve-deps resolve-deps repo present-packages found-packages absent-specs
-                rclauses
-                (update-package-graph package-graph parent found-package)))
-      ((and (not (eql conflict-strat :inclusive)) present-id-packages)
-       (funcall mkerror :present-package-conflict
-                :additional
-                (list :alternative alternative :package-present-by :given)))
-      ((and (not (eql conflict-strat :inclusive)) found-id-packages)
-       (let ((seek-result (seek-package (funcall repo id) vet)))
-         (if (eql (first seek-result) :successful)
-             (funcall mkerror :present-package-conflict
-                      :additional
-                      (list :alternative alternative
-                            :package-present-by :found
-                            :suggestion-attempt :successful)
-                      :suggestions
-                      (let ((h (make-hash-table :test 'equal)))
-                        (setf (gethash id h) (second seek-result)) h))
-             (funcall mkerror :present-package-conflict
-                      :additional
-                      (list :alternative alternative
-                            :package-present-by :found
-                            :suggestion-attempt :unsuccessful)))))
-      ((eql status :absent)
-       (funcall resolve-deps resolve-deps repo present-packages found-packages
-                (update-spec absent-specs id spec)
-                rclauses package-graph))
-      ((eql status :present)
-       (let* ((seek-result (seek-package (funcall repo id) vet)))
-         (if (eql (first seek-result) :successful)
-             (let* ((filtered (funcall cull (second seek-result))))
-               (try-candidates
-                 (lambda (candidate)
-                   (funcall resolve-deps resolve-deps repo present-packages
-                            (update-package found-packages id candidate)
-                            absent-specs
-                            (funcall concat-reqs rclauses
-                                     (loop for req in (pi-requirements candidate)
-                                           collect (make-decorated-requirement
-                                                    :clause (list req)
-                                                    :parent candidate)))
-                            (update-package-graph package-graph parent candidate)))
-                 vet filtered))
-             (let* ((problem (getf (second seek-result) :problem))
-                    (pkg-error (lambda (reason)
-                                 (funcall mkerror reason
-                                          :additional
-                                          (list :alternative alternative
-                                                :package-id id)))))
-               (cond
-                 ((eql problem :empty-query-results)
-                  (funcall pkg-error :package-not-found))
-                 ((eql problem :unsatisfactory-query-results)
-                  (funcall pkg-error :package-rejected))
-                 (t (funcall pkg-error :uncovered-case)))))))
-      (t nil))))
-
-(defun update-package-graph (graph parent child)
+    (labels
+        ((resolve-deps (found-packages absent-specs clauses package-graph)
+           "Recursive resolver.  REPO and PRESENT-PACKAGES are captured
+            by closure from the outer lambda.  FOUND-PACKAGES, ABSENT-SPECS,
+            CLAUSES, PACKAGE-GRAPH change during recursion and are passed
+            explicitly.  All strategy arguments (CONFLICT-STRAT, CONCAT-REQS,
+            SAFE-SPEC-CALL, CULL, CULL-ALTERNATIVES) are captured by closure
+            from MAKE-RESOLVE-DEPS."
+           (if (null clauses)
+               (list :successful package-graph)
+               (let* ((fclause (first clauses))
+                      (rclauses (rest clauses))
+                      (clause (dr-clause fclause))
+                      (parent (dr-parent fclause))
+                      (mkerror (lambda (reason &key suggestions additional)
+                                 (make-error present-packages
+                                             found-packages absent-specs
+                                             clause reason
+                                             :suggestions suggestions
+                                             :additional additional))))
+                 (if (null clause)
+                     (funcall mkerror :empty-alternative-set)
+                     (let* ((hoisted (hoist
+                                      (funcall cull-alternatives clause)
+                                      absent-specs found-packages
+                                      present-packages))
+                            (clause-result
+                              (loop for alternative in hoisted
+                                    collect
+                                    (resolve-alternative
+                                      alternative mkerror rclauses parent))))
+                       (or (some (lambda (r)
+                                   (when (eql (first r) :successful) r))
+                                 clause-result)
+                           (list :unsuccessful
+                                 (reduce #'merge-failure-records
+                                         (mapcar #'second clause-result)
+                                         :initial-value nil))))))))
+         (resolve-alternative (alternative mkerror rclauses parent)
+           "Resolve a single alternative.  All strategy arguments and
+            REPO, PRESENT-PACKAGES, FOUND-PACKAGES, ABSENT-SPECS,
+            PACKAGE-GRAPH, RESOLVE-DEPS are captured by closure.
+            PARENT is passed explicitly since it is bound in the
+            RESOLVE-DEPS let* and not in the labels enclosing scope."
+           (let* ((status (req-status alternative))
+                  (id (req-id alternative))
+                  (spec (req-spec alternative))
+                  (vet (lambda (candidate)
+                         (vet-candidate
+                           (gethash id absent-specs)
+                           safe-spec-call spec candidate)))
+                  (present-id-packages (gethash id present-packages))
+                  (found-id-packages (gethash id found-packages))
+                  (present-package
+                    (when present-id-packages
+                      (if (eql conflict-strat :prioritized)
+                          (car present-id-packages)
+                          (present-packages-satisfies-p
+                            present-id-packages spec safe-spec-call status))))
+                  (found-package
+                    (when found-id-packages
+                      (if (eql conflict-strat :prioritized)
+                          (car found-id-packages)
+                          (present-packages-satisfies-p
+                            found-id-packages spec safe-spec-call status)))))
+             (cond
+               (present-package
+                (resolve-deps found-packages absent-specs rclauses
+                              (update-package-graph package-graph parent
+                                                    present-package)))
+               (found-package
+                (resolve-deps found-packages absent-specs rclauses
+                              (update-package-graph package-graph parent
+                                                    found-package)))
+               ((and (not (eql conflict-strat :inclusive))
+                     present-id-packages)
+                (funcall mkerror :present-package-conflict
+                         :additional
+                         (list :alternative alternative
+                               :package-present-by :given)))
+               ((and (not (eql conflict-strat :inclusive))
+                     found-id-packages)
+                (let ((seek-result (seek-package (funcall repo id) vet)))
+                  (if (eql (first seek-result) :successful)
+                      (funcall mkerror :present-package-conflict
+                               :additional
+                               (list :alternative alternative
+                                     :package-present-by :found
+                                     :suggestion-attempt :successful)
+                               :suggestions
+                               (let ((h (make-hash-table :test 'equal)))
+                                 (setf (gethash id h) (second seek-result))
+                                 h))
+                      (funcall mkerror :present-package-conflict
+                               :additional
+                               (list :alternative alternative
+                                     :package-present-by :found
+                                     :suggestion-attempt :unsuccessful)))))
+               ((eql status :absent)
+                (resolve-deps found-packages
+                              (update-spec absent-specs id spec)
+                              rclauses package-graph))
+               ((eql status :present)
+                (let* ((seek-result (seek-package (funcall repo id) vet)))
+                  (if (eql (first seek-result) :successful)
+                      (let* ((filtered (funcall cull (second seek-result))))
+                        (try-candidates
+                          (lambda (candidate)
+                            (resolve-deps
+                              (update-package found-packages id candidate)
+                              absent-specs
+                              (funcall concat-reqs rclauses
+                                       (loop for clause in (pi-requirements candidate)
+                                             collect (make-decorated-requirement
+                                                       :clause clause
+                                                       :parent candidate)))
+                              (update-package-graph package-graph parent candidate)))
+                          vet filtered))
+                      (let* ((problem (getf (second seek-result) :problem))
+                             (pkg-error (lambda (reason)
+                                          (funcall mkerror reason
+                                                   :additional
+                                                   (list :alternative alternative
+                                                         :package-id id)))))
+                        (cond
+                          ((eql problem :empty-query-results)
+                           (funcall pkg-error :package-not-found))
+                          ((eql problem :unsatisfactory-query-results)
+                           (funcall pkg-error :package-rejected))
+                          (t (funcall pkg-error :uncovered-case)))))))
+               (t nil)))))
+      (resolve-deps found-packages absent-specs clauses package-graph))))
+                            (defun update-package-graph (graph parent child)
   "Add CHILD as a dependency of PARENT in the graph."
   (let ((children (gethash parent graph)))
     (if children
@@ -749,9 +782,9 @@
          (resolve-deps (make-resolve-deps
                          conflict-strat concat-reqs safe-spec-call
                          cull cull-alternatives))
-         (decorated-reqs (loop for req in requirements
+         (decorated-reqs (loop for clause in requirements
                                collect (make-decorated-requirement
-                                         :clause (list req) :parent :root)))
+                                         :clause clause :parent :root)))
          (result (funcall resolve-deps query
                           present-packages
                           (make-hash-table :test 'equal)
