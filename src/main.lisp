@@ -126,7 +126,7 @@
   "Aggregate repositories using the given strategy and generator function."
   (let ((agg-fn (util:aggregator index-strat version-comparator))
         (repos (loop for url in repositories
-                     collect (funcall genrepo url))))
+                     append (funcall genrepo url))))
     (funcall agg-fn repos)))
 
 ;;; ─── Subcommand: resolve-locations ──────────────────────────────────────────
@@ -201,7 +201,7 @@
                      version-comparator))))
            (result
              (resolve-dependencies-deluxe
-               (apply #'append requirement-data)
+               requirement-data
                query
                :present-packages present-packages-map
                :strategy (intern (string-upcase resolve-strat) :keyword)
@@ -322,10 +322,12 @@
                        (when reqs
                          (setf (gethash :requirements ht) reqs))
                        ht)))
-      ;; Merge in additional metadata
+      ;; Merge in additional metadata, but exclude keys that conflict
+      ;; with PackageInfo fields (matching degasolv behavior)
       (when meta
         (maphash (lambda (k v)
-                   (setf (gethash k pkg-data) v))
+                   (unless (member k '(:id :version :location :requirements))
+                     (setf (gethash k pkg-data) v)))
                  meta))
       ;; Write card file
       (with-open-file (stream card-file
@@ -485,6 +487,67 @@
 
 ;;; ─── Main entry point ───────────────────────────────────────────────────────
 
+(defun string-keys-to-keywords (ht)
+  "Convert all string keys in a hash table to keywords."
+  (let ((result (make-hash-table :test 'equal)))
+    (maphash (lambda (k v)
+               (setf (gethash (if (stringp k) (intern (string-upcase k) :keyword) k) result)
+                     (if (hash-table-p v)
+                         (string-keys-to-keywords v)
+                         v)))
+             ht)
+    result))
+
+(defun normalize-keys (options)
+  "Normalize option keys by converting underscores to hyphens.
+   This ensures env var keys (underscore) match CLI arg keys (hyphen)."
+  (let ((keys-to-fix nil))
+    (maphash (lambda (k v)
+               (declare (ignore v))
+               (when (and (keywordp k)
+                          (find #\_ (string k)))
+                 (push k keys-to-fix)))
+             options)
+    (dolist (k keys-to-fix)
+      (let ((new-key (intern (substitute #\- #\_ (string k)) :keyword)))
+        (setf (gethash new-key options) (gethash k options))
+        (remhash k options))))
+  options)
+
+(defun setup-function (options)
+  "Setup function for CLIFF's execute-program.
+   Loads config files from the :config-files list and merges them into options."
+  ;; Normalize keys (underscore -> hyphen for env var compatibility)
+  (normalize-keys options)
+  ;; Load NRDL config files
+  (let ((config-files (gethash :config-files options)))
+    (when config-files
+      (dolist (file config-files)
+        (handler-case
+            (let* ((raw (data-slurp file))
+                   (parsed (parse-string raw)))
+              (when (hash-table-p parsed)
+                (maphash (lambda (k v)
+                           (setf (gethash k options) v))
+                         parsed)))
+          (error (e)
+            (format *error-output* "Warning: Could not load config file ~a: ~a~%" file e))))))
+  ;; Load JSON config files (string keys -> keywords)
+  (let ((json-config-files (gethash :json-config-files options)))
+    (when json-config-files
+      (dolist (file json-config-files)
+        (handler-case
+            (let* ((raw (data-slurp file))
+                   (parsed (parse-string raw)))
+              (when (hash-table-p parsed)
+                (let ((converted (string-keys-to-keywords parsed)))
+                  (maphash (lambda (k v)
+                             (setf (gethash k options) v))
+                           converted))))
+          (error (e)
+            (format *error-output* "Warning: Could not load JSON config file ~a: ~a~%" file e))))))
+  options)
+
 (defun main (&rest argv)
   "Entry point for the dsolv CLI tool.
    Uses CLIFF's execute-program for argument parsing, config file handling,
@@ -504,6 +567,37 @@
       :default-function #'default-fn
       :defaults
       (alexandria:hash-table-alist *subcommand-option-defaults*)
+      :setup #'setup-function
+      :environment-aliases
+      '(;; Map DEGASOLV_* environment variables to CLIFF's DSOLV_* format
+        ("DEGASOLV_ID" . "DSOLV_ITEM_ID")
+        ("DEGASOLV_REQUIREMENTS" . "DSOLV_LIST_REQUIREMENTS")
+        ("DEGASOLV_VERSION" . "DSOLV_ITEM_VERSION")
+        ("DEGASOLV_LOCATION" . "DSOLV_ITEM_LOCATION")
+        ("DEGASOLV_CARD_FILE" . "DSOLV_ITEM_CARD_FILE")
+        ("DEGASOLV_CONFIG_FILES" . "DSOLV_LIST_CONFIG_FILES")
+        ("DEGASOLV_JSON_CONFIG_FILES" . "DSOLV_LIST_JSON_CONFIG_FILES")
+        ("DEGASOLV_REPOSITORIES" . "DSOLV_LIST_REPOSITORIES")
+        ("DEGASOLV_PRESENT_PACKAGES" . "DSOLV_LIST_PRESENT_PACKAGES")
+        ("DEGASOLV_OPTION_PACKS" . "DSOLV_LIST_OPTION_PACKS")
+        ("DEGASOLV_SEARCH_DIRECTORY" . "DSOLV_ITEM_SEARCH_DIRECTORY")
+        ("DEGASOLV_INDEX_FILE" . "DSOLV_ITEM_INDEX_FILE")
+        ("DEGASOLV_OUTPUT_FORMAT" . "DSOLV_ITEM_OUTPUT_FORMAT")
+        ("DEGASOLV_PACKAGE_SYSTEM" . "DSOLV_ITEM_PACKAGE_SYSTEM")
+        ("DEGASOLV_SEARCH_STRAT" . "DSOLV_ITEM_SEARCH_STRAT")
+        ("DEGASOLV_CONFLICT_STRAT" . "DSOLV_ITEM_CONFLICT_STRAT")
+        ("DEGASOLV_RESOLVE_STRAT" . "DSOLV_ITEM_RESOLVE_STRAT")
+        ("DEGASOLV_LIST_STRAT" . "DSOLV_ITEM_LIST_STRAT")
+        ("DEGASOLV_INDEX_STRAT" . "DSOLV_ITEM_INDEX_STRAT")
+        ("DEGASOLV_INDEX_SORT_ORDER" . "DSOLV_ITEM_INDEX_SORT_ORDER")
+        ("DEGASOLV_VERSION_COMPARISON" . "DSOLV_ITEM_VERSION_COMPARISON")
+        ("DEGASOLV_SUBPROC_EXE" . "DSOLV_ITEM_SUBPROC_EXE")
+        ("DEGASOLV_CLONE_FOLDER" . "DSOLV_ITEM_CLONE_FOLDER")
+        ("DEGASOLV_SUBPROC_OUTPUT_FORMAT" . "DSOLV_ITEM_SUBPROC_OUTPUT_FORMAT")
+        ("DEGASOLV_QUERY" . "DSOLV_ITEM_QUERY")
+        ("DEGASOLV_ADD_TO" . "DSOLV_ITEM_ADD_TO")
+        ("DEGASOLV_ALTERNATIVES" . "DSOLV_FLAG_ALTERNATIVES")
+        ("DEGASOLV_ERROR_FORMAT" . "DSOLV_FLAG_ERROR_FORMAT"))
       :cli-aliases
       '(;; Scalar options: --name -> --set-name
         ("--id" . "--set-id")

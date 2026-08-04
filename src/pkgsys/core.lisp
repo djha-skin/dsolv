@@ -40,6 +40,20 @@
          (fset-data (to-fset card-data)))
     fset-data))
 
+(defun fset-to-hash-table (fset-map)
+  "Convert an fset map to a hash table for NRDL serialization."
+  (let ((ht (make-hash-table :test 'equal)))
+    (fset:do-map (k v fset-map)
+      (setf (gethash k ht)
+            (typecase v
+              (fset:wb-map (fset-to-hash-table v))
+              (fset:wb-seq (loop for item in (fset:convert 'list v)
+                                 collect (if (typep item 'fset:wb-map)
+                                             (fset-to-hash-table item)
+                                             item)))
+              (t v))))
+    ht))
+
 (defun generate-repo-index (search-directory index-file
                              &key add-to sortindex)
   "Generate a repository index from .dscard files in SEARCH-DIRECTORY.
@@ -85,14 +99,50 @@
                                          (funcall sortindex packages))))
                  result)
                merged-repository)))
-    ;; Write the index file
-    (with-open-file (stream index-file
-                            :direction :output
-                            :if-exists :supersede
-                            :if-does-not-exist :create)
-      (nrdl:generate-to stream sorted-repository
-                         :pretty-indent 2))
+    ;; Convert fset map to hash table for NRDL serialization
+    (let ((repo-ht (make-hash-table :test 'equal)))
+      (fset:do-map (id packages sorted-repository)
+        (let ((pkg-list (loop for pkg in (fset:convert 'list packages)
+                              collect (fset-to-hash-table pkg))))
+          (setf (gethash id repo-ht) pkg-list)))
+      ;; Write the index file
+      (with-open-file (stream index-file
+                              :direction :output
+                              :if-exists :supersede
+                              :if-does-not-exist :create)
+        (nrdl:generate-to stream repo-ht
+                           :pretty-indent 2)))
     sorted-repository))
+
+(defun fset-map-to-package-info (fset-map)
+  "Convert an fset map (from card data) to a PACKAGE-INFO struct."
+  (let ((reqs (fset:lookup fset-map :requirements)))
+    (resolver:make-package-info
+      :id (fset:lookup fset-map :id)
+      :version (fset:lookup fset-map :version)
+      :location (fset:lookup fset-map :location)
+      :requirements
+      (if reqs
+          (loop for clause in (fset:convert 'list reqs)
+                collect (loop for req-data in clause
+                              collect (let ((req-map (typecase req-data
+                                                      (fset:wb-map req-data)
+                                                      (t (error "Expected fset map for requirement, got ~a" (type-of req-data))))))
+                                        (resolver:make-requirement
+                                          :status (intern (string-upcase (fset:lookup req-map :status)) :keyword)
+                                          :id (fset:lookup req-map :id)
+                                          :spec (let ((spec (fset:lookup req-map :spec)))
+                                                  (if (and spec (not (fset:empty? spec)))
+                                                      (loop for disj in (fset:convert 'list spec)
+                                                            collect (loop for vp-data in disj
+                                                                          collect (let ((vp-map (typecase vp-data
+                                                                                                  (fset:wb-map vp-data)
+                                                                                                  (t (error "Expected fset map for vp, got ~a" (type-of vp-data))))))
+                                                                                    (resolver:make-version-predicate
+                                                                                      :relation (intern (string-upcase (fset:lookup vp-map :relation)) :keyword)
+                                                                                      :version (fset:lookup vp-map :version))))))
+                                                      nil))))))
+          nil))))
 
 (defun slurp-degasolv-repo (url)
   "Read a degasolv repository from URL, returning a list of query functions.
@@ -107,5 +157,11 @@
          (repo-data (nrdl:parse-from
                       (make-string-input-stream repo-string)))
          (fset-repo (to-fset repo-data)))
-    ;; Convert the repo data to a query function via map-query
-    (list (map-query fset-repo))))
+    ;; Convert the repo data to a query function via map-query,
+    ;; then wrap it to convert fset maps to package-info structs
+    (list (lambda (nm)
+            (let ((results (funcall (map-query fset-repo) nm)))
+              (when results
+                (fset:map (lambda (item)
+                            (fset-map-to-package-info item))
+                          results)))))))

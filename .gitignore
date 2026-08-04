@@ -19,3 +19,8 @@
 # Built binary
 /dsolv
 /build-dsolv.lisp
+dsolv
+com.djhaskin.dsolv
+*.bak
+index.dsrepo
+out.dscard
