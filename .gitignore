@@ -9,3 +9,7 @@
 *.fasl
 *.fasl.gz
 .DS_Store
+
+# Built binary
+/dsolv
+/build-dsolv.lisp

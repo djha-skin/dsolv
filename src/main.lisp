@@ -55,21 +55,23 @@
 
 ;;; ─── Helpers ────────────────────────────────────────────────────────────────
 
-(defun exit-with (status msg)
-  "Print MSG to stderr and exit with STATUS."
+(defun exit-with (status-code msg)
+  "Print MSG to stderr and exit with STATUS-CODE.
+   STATUS-CODE is a keyword from CLIFF's *exit-codes* (e.g. :general-error).
+   Returns a hash table suitable for CLIFF's execute-program."
   (format *error-output* "~a~%" msg)
-  (values status
-          (alexandria:alist-hash-table
-            `((:status . ,status)
-              (:cliff-suppress-output . t)))))
+  (alexandria:alist-hash-table
+    `((:status . ,status-code)
+      (:cliff-suppress-output . t))))
 
-(defun out-exit-with (status msg)
-  "Print MSG to stdout and exit with STATUS."
+(defun out-exit-with (status-code msg)
+  "Print MSG to stdout and exit with STATUS-CODE.
+   STATUS-CODE is a keyword from CLIFF's *exit-codes* (e.g. :successful).
+   Returns a hash table suitable for CLIFF's execute-program."
   (format t "~a~%" msg)
-  (values status
-          (alexandria:alist-hash-table
-            `((:status . ,status)
-              (:cliff-suppress-output . t)))))
+  (alexandria:alist-hash-table
+    `((:status . ,status-code)
+      (:cliff-suppress-output . t))))
 
 (defun ht-get (ht key &optional default)
   "Get a value from a hash table with a default."
@@ -150,7 +152,7 @@
                    (declare (ignore val))
                    (unless (gethash key options)
                      (return-from resolve-locations-fn
-                       (exit-with 1
+                       (exit-with :general-error
                          (format nil "Missing required argument: ~a" key)))))
                  req-args)))
 
@@ -159,7 +161,7 @@
       (let ((repos (ht-get options :repositories)))
         (unless (and repos (listp repos) (not (null repos)))
           (return-from resolve-locations-fn
-            (exit-with 1 "Missing required argument: --set-repositories")))))
+            (exit-with :general-error "Missing required argument: --set-repositories")))))
 
     ;; Parse requirements
     (let* ((requirement-data
@@ -224,10 +226,13 @@
                (loop for pkg in packages
                      do (format t "#:package-info{:id \"~a\" :version \"~a\" :location \"~a\"} "
                                 (pi-id pkg) (pi-version pkg) (pi-location pkg)))
-               (format t ")~%"))))
+               (format t ")~%")))
+            (alexandria:alist-hash-table
+              `((:status . :successful)
+                (:cliff-suppress-output . t))))
           (let ((problems (getf result :problems)))
             (if error-format
-                (out-exit-with 3
+                (out-exit-with :system-error
                   (ecase (intern (string-upcase output-format) :keyword)
                     (:json
                      (format nil "{\"result\":\"unsuccessful\",\"problems\":[...]}"))
@@ -235,12 +240,8 @@
                      (format nil "~{~a~%~}" (mapcar #'explain-problem problems)))
                     (:edn
                      (format nil ":result :unsuccessful :problems ~a" problems))))
-                (exit-with 3
-                  (format nil "~{~a~%~}" (mapcar #'explain-problem problems))))))
-      (values 0
-              (alexandria:alist-hash-table
-                `((:status . :successful)
-                  (:cliff-suppress-output . t)))))))
+                (exit-with :system-error
+                  (format nil "~{~a~%~}" (mapcar #'explain-problem problems)))))))))
 
 ;;; ─── Subcommand: generate-repo-index ────────────────────────────────────────
 
@@ -269,10 +270,9 @@
     (generate-repo-index search-directory index-file
                          :add-to add-to
                          :sortindex sortindex)
-    (values 0
-            (alexandria:alist-hash-table
-              `((:status . :successful)
-                (:cliff-suppress-output . t))))))
+    (alexandria:alist-hash-table
+      `((:status . :successful)
+        (:cliff-suppress-output . t)))))
 
 ;;; ─── Subcommand: generate-card ──────────────────────────────────────────────
 
@@ -286,7 +286,7 @@
          (meta (ht-get options :meta)))
     (unless (and id version location)
       (return-from generate-card-fn
-        (exit-with 1 "Missing required arguments: --set-id, --set-version, --set-location")))
+        (exit-with :general-error "Missing required arguments: --set-id, --set-version, --set-location")))
     (let* ((reqs (loop for r in requirements
                        collect (first (string-to-requirement r))))
            (pkg (make-package-info
@@ -311,10 +311,9 @@
                               :if-exists :supersede
                               :if-does-not-exist :create)
         (nrdl:generate-to stream pkg-data :pretty-indent 2)))
-    (values 0
-            (alexandria:alist-hash-table
-              `((:status . :successful)
-                (:cliff-suppress-output . t))))))
+    (alexandria:alist-hash-table
+      `((:status . :successful)
+        (:cliff-suppress-output . t)))))
 
 ;;; ─── Subcommand: query-repo ─────────────────────────────────────────────────
 
@@ -332,7 +331,7 @@
 
     (unless (and repositories query)
       (return-from query-repo-fn
-        (exit-with 1 "Missing required arguments: --set-repositories, --set-query")))
+        (exit-with :general-error "Missing required arguments: --set-repositories, --set-query")))
 
     (let* ((genrepo (getf pkg-sys-entry :genrepo))
            (aggregate-repo
@@ -351,12 +350,12 @@
                      (funcall aggregate-repo id))))
       (if (fset:empty? results)
           (if error-format
-              (out-exit-with 2
+              (out-exit-with :data-format-error
                 (ecase (intern (string-upcase output-format) :keyword)
                   (:json "{\"result\":\"unsuccessful\",\"message\":\"No results returned from query\"}")
                   (:plain "No results returned from query")
                   (:edn ":result :unsuccessful :message \"No results returned from query\"")))
-              (exit-with 2 "No results returned from query"))
+              (exit-with :data-format-error "No results returned from query"))
           (ecase (intern (string-upcase output-format) :keyword)
             (:json
              (format t "{\"packages\":[~%")
@@ -371,10 +370,9 @@
              (fset:do-seq (pkg results)
                (format t "#:package-info{:id \"~a\" :version \"~a\" :location \"~a\"}~%"
                        (pi-id pkg) (pi-version pkg) (pi-location pkg))))))
-      (values 0
-              (alexandria:alist-hash-table
-                `((:status . :successful)
-                  (:cliff-suppress-output . t)))))))
+      (alexandria:alist-hash-table
+        `((:status . :successful)
+          (:cliff-suppress-output . t))))))
 
 ;;; ─── Subcommand: display-config ─────────────────────────────────────────────
 
@@ -398,11 +396,9 @@
        (maphash (lambda (k v)
                   (format t "  ~s ~s~%" k v))
                 options))))
-  (values 0
-          (alexandria:alist-hash-table
-            `((:status . :successful)
-              (:cliff-suppress-output . t)))))
-
+  (alexandria:alist-hash-table
+    `((:status . :successful)
+     (:cliff-suppress-output . t))))
 ;;; ─── Default function ───────────────────────────────────────────────────────
 
 (defun default-fn (options)
@@ -419,11 +415,9 @@
   (format t "  display-config      Display the effective configuration~%")
   (format t "~%")
   (format t "Run `dsolv <subcommand> --enable-help` for help on a specific subcommand.~%")
-  (values 0
-          (alexandria:alist-hash-table
-            `((:status . :successful)
-              (:cliff-suppress-output . t)))))
-
+  (alexandria:alist-hash-table
+    `((:status . :successful)
+     (:cliff-suppress-output . t))))
 ;;; ─── Version comparators hash table ─────────────────────────────────────────
 
 ;; Populate *version-comparators* with all available comparators from svers
