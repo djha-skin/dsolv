@@ -5,6 +5,12 @@
 *.db
 .beads-credential-key
 
+# AI
+/.pi/quiet-tools/
+/.pi/tasks/
+/.pi/input-history.jsonl
+/.beads/interactions.jsonl
+
 # Compiled Lisp files
 *.fasl
 *.fasl.gz
