@@ -71,8 +71,8 @@
                      (fset:with acc pkg-id
                        (let ((existing (fset:lookup acc pkg-id)))
                          (if existing
-                             (fset:push-last existing card-data)
-                             (fset:with (f:empty-seq) card-data))))
+                             (fset:with-last existing card-data)
+                             (fset:with-last (f:empty-seq) card-data))))
                      acc)))
              dscard-files
              :initial-value initial-repository))

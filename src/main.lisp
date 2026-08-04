@@ -26,6 +26,9 @@
     #:pi-requirements
     #:req-id
     #:req-spec
+    #:req-status
+    #:vp-relation
+    #:vp-version
     #:*version-comparators*
     #:*package-systems*
     #:*subcommand-option-defaults*
@@ -274,6 +277,26 @@
       `((:status . :successful)
         (:cliff-suppress-output . t)))))
 
+;;; ─── NRDL serialization helpers ────────────────────────────────────────────
+
+(defun requirement-to-data (req)
+  "Convert a REQUIREMENT struct to a hash table for NRDL serialization."
+  (alexandria:alist-hash-table
+    (list (cons :status (req-status req))
+          (cons :id (req-id req))
+          (cons :spec (spec-to-data (req-spec req))))
+    :test 'equal))
+
+(defun spec-to-data (spec)
+  "Convert a SPEC (list of disjunctions of version predicates) to NRDL data.
+   Each disjunction is a list of version-predicate hash tables."
+  (loop for disj in spec
+        collect (loop for vp in disj
+                      collect (alexandria:alist-hash-table
+                                (list (cons :relation (vp-relation vp))
+                                      (cons :version (vp-version vp)))
+                                :test 'equal))))
+
 ;;; ─── Subcommand: generate-card ──────────────────────────────────────────────
 
 (defun generate-card-fn (options)
@@ -282,28 +305,27 @@
          (version (ht-get options :version))
          (location (ht-get options :location))
          (card-file (ht-get options :card-file "./out.dscard"))
-         (requirements (ht-get options :requirements))
+         (requirements (or (ht-get options :requirements) (list)))
          (meta (ht-get options :meta)))
     (unless (and id version location)
       (return-from generate-card-fn
         (exit-with :general-error "Missing required arguments: --set-id, --set-version, --set-location")))
     (let* ((reqs (loop for r in requirements
-                       collect (first (string-to-requirement r))))
-           (pkg (make-package-info
-                  :id id
-                  :version version
-                  :location location
-                  :requirements reqs))
-           (pkg-data
-             (list :id (pi-id pkg)
-                   :version (pi-version pkg)
-                   :location (pi-location pkg)
-                   :requirements (pi-requirements pkg))))
+                        collect (loop for req in (string-to-requirement r)
+                                      collect (requirement-to-data req))))
+           (pkg-data (let ((ht (alexandria:alist-hash-table
+                                 (list (cons :id id)
+                                       (cons :version version)
+                                       (cons :location location))
+                                 :test 'equal)))
+                       ;; Only add requirements key if there are any
+                       (when reqs
+                         (setf (gethash :requirements ht) reqs))
+                       ht)))
       ;; Merge in additional metadata
       (when meta
         (maphash (lambda (k v)
-                   (push k pkg-data)
-                   (push v pkg-data))
+                   (setf (gethash k pkg-data) v))
                  meta))
       ;; Write card file
       (with-open-file (stream card-file
@@ -482,6 +504,66 @@
       :default-function #'default-fn
       :defaults
       (alexandria:hash-table-alist *subcommand-option-defaults*)
+      :cli-aliases
+      '(;; Scalar options: --name -> --set-name
+        ("--id" . "--set-id")
+        ("--version" . "--set-version")
+        ("--location" . "--set-location")
+        ("--card-file" . "--set-card-file")
+        ("--output-format" . "--set-output-format")
+        ("--index-strat" . "--set-index-strat")
+        ("--search-strat" . "--set-search-strat")
+        ("--conflict-strat" . "--set-conflict-strat")
+        ("--resolve-strat" . "--set-resolve-strat")
+        ("--list-strat" . "--set-list-strat")
+        ("--package-system" . "--set-package-system")
+        ("--index-file" . "--set-index-file")
+        ("--search-directory" . "--set-search-directory")
+        ("--index-sort-order" . "--set-index-sort-order")
+        ("--version-comparison" . "--set-version-comparison")
+        ("--subproc-exe" . "--set-subproc-exe")
+        ("--clone-folder" . "--set-clone-folder")
+        ("--subproc-output-format" . "--set-subproc-output-format")
+        ("--query" . "--set-query")
+        ("--add-to" . "--set-add-to")
+        ("--error-format" . "--set-error-format")
+        ;; List options: --name -> --add-name (use plural form for CLIFF key)
+        ("--requirement" . "--add-requirements")
+        ("--repository" . "--add-repositories")
+        ("--present-package" . "--add-present-packages")
+        ("--option-pack" . "--add-option-packs")
+        ("--config-file" . "--add-config-files")
+        ("--json-config" . "--add-json-config-files")
+        ;; Hash-table options: --name -> --join-name
+        ("--meta" . "--join-meta")
+        ;; Short options (for compatibility with degasolv scripts)
+        ("-i" . "--set-id")
+        ("-v" . "--set-version")
+        ("-l" . "--set-location")
+        ("-C" . "--set-card-file")
+        ("-o" . "--set-output-format")
+        ("-S" . "--set-index-strat")
+        ("-e" . "--set-search-strat")
+        ("-f" . "--set-conflict-strat")
+        ("-s" . "--set-resolve-strat")
+        ("-L" . "--set-list-strat")
+        ("-t" . "--set-package-system")
+        ("-I" . "--set-index-file")
+        ("-d" . "--set-search-directory")
+        ("-O" . "--set-index-sort-order")
+        ("-V" . "--set-version-comparison")
+        ("-x" . "--set-subproc-exe")
+        ("-n" . "--set-clone-folder")
+        ("-u" . "--set-subproc-output-format")
+        ("-q" . "--set-query")
+        ("-a" . "--set-add-to")
+        ("-r" . "--add-requirements")
+        ("-R" . "--add-repositories")
+        ("-p" . "--add-present-packages")
+        ("-k" . "--add-option-packs")
+        ("-c" . "--add-config-files")
+        ("-j" . "--add-json-config-files")
+        ("-m" . "--join-meta"))
       :cli-arguments (if argv
                          (coerce argv 'list)
                          t))))
