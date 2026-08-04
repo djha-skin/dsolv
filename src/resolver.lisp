@@ -514,32 +514,32 @@
 
 (defun merge-failure-records (a b)
   "Merge two failure records together."
-  (flet ((merge-into (base key val)
-           (let ((existing (getf base key)))
-             (if existing
-                 (setf (getf base key) (append existing val))
-                 (setf (getf base key) val)))))
-    (let ((result (copy-list a)))
-      (merge-into result :problems (getf b :problems))
-      (let ((sug-a (getf a :suggestions))
-            (sug-b (getf b :suggestions)))
-        (if sug-a
-            (if sug-b
-                (setf (getf result :suggestions)
-                      ;; Merge two fset maps: shared keys get intersection;
-                      ;; keys only in sug-b get added; keys only in sug-a stay.
-                      (fset:reduce (lambda (merged key)
-                                     (let ((vb (fset:lookup sug-b key))
-                                           (va (fset:lookup sug-a key)))
-                                       (if va
-                                           (fset:with merged key
-                                                      (intersection va vb))
-                                           (fset:with merged key vb))))
-                                   (fset:domain sug-b)
-                                   :initial-value sug-a))
-                (setf (getf result :suggestions) sug-a))
-            (setf (getf result :suggestions) sug-b)))
-      result)))
+  (let ((result (copy-list a)))
+    ;; Inline merge-into: (setf (getf base key) val) on a parameter doesn't
+    ;; propagate back to the caller's variable, so operate on RESULT directly.
+    (let ((existing (getf result :problems))
+          (b-problems (getf b :problems)))
+      (if existing
+          (setf (getf result :problems) (append existing b-problems))
+          (setf (getf result :problems) b-problems)))
+    (let ((sug-a (getf a :suggestions))
+          (sug-b (getf b :suggestions)))
+      (if sug-a
+          (if sug-b
+              (setf (getf result :suggestions)
+                    (fset:reduce
+                     (lambda (merged key)
+                       (let ((vb (fset:lookup sug-b key))
+                             (va (fset:lookup sug-a key)))
+                         (if va
+                             (fset:with merged key
+                                        (intersection va vb))
+                             (fset:with merged key vb))))
+                     (fset:domain sug-b)
+                     :initial-value sug-a))
+              (setf (getf result :suggestions) sug-a))
+          (setf (getf result :suggestions) sug-b)))
+    result))
 
 (defun make-error (present-packages found-packages absent-specs
                    clause reason &key suggestions additional)

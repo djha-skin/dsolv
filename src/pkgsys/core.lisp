@@ -19,6 +19,7 @@
     #:generate-to
     #:to-fset)
   (:import-from #:fset)
+  (:import-from #:gmap #:gmap)
   (:import-from #:uiop)
   (:local-nicknames
     (#:f #:fset)
@@ -114,6 +115,30 @@
                            :pretty-indent 2)))
     sorted-repository))
 
+(defun fset-map-to-version-predicate (vp-data)
+  "Convert a version predicate fset map to a version-predicate struct."
+  (let ((vp-map (typecase vp-data
+                  (fset:wb-map vp-data)
+                  (t (error "Expected fset map for vp, got ~a" (type-of vp-data))))))
+    (resolver:make-version-predicate
+      :relation (intern (string-upcase (fset:lookup vp-map :relation)) :keyword)
+      :version (fset:lookup vp-map :version))))
+
+(defun fset-map-to-requirement (req-data)
+  "Convert a requirement fset map to a requirement struct."
+  (let* ((req-map (typecase req-data
+                    (fset:wb-map req-data)
+                    (t (error "Expected fset map for requirement, got ~a" (type-of req-data)))))
+         (spec (fset:lookup req-map :spec)))
+    (resolver:make-requirement
+      :status (intern (string-upcase (fset:lookup req-map :status)) :keyword)
+      :id (fset:lookup req-map :id)
+      :spec (if (and spec (not (fset:empty? spec)))
+                (loop for disj in (fset:convert 'list spec)
+                      collect (loop for vp-data in disj
+                                    collect (fset-map-to-version-predicate vp-data)))
+                nil))))
+
 (defun fset-map-to-package-info (fset-map)
   "Convert an fset map (from card data) to a PACKAGE-INFO struct."
   (let ((reqs (fset:lookup fset-map :requirements)))
@@ -125,23 +150,7 @@
       (if reqs
           (loop for clause in (fset:convert 'list reqs)
                 collect (loop for req-data in clause
-                              collect (let ((req-map (typecase req-data
-                                                      (fset:wb-map req-data)
-                                                      (t (error "Expected fset map for requirement, got ~a" (type-of req-data))))))
-                                        (resolver:make-requirement
-                                          :status (intern (string-upcase (fset:lookup req-map :status)) :keyword)
-                                          :id (fset:lookup req-map :id)
-                                          :spec (let ((spec (fset:lookup req-map :spec)))
-                                                  (if (and spec (not (fset:empty? spec)))
-                                                      (loop for disj in (fset:convert 'list spec)
-                                                            collect (loop for vp-data in disj
-                                                                          collect (let ((vp-map (typecase vp-data
-                                                                                                  (fset:wb-map vp-data)
-                                                                                                  (t (error "Expected fset map for vp, got ~a" (type-of vp-data))))))
-                                                                                    (resolver:make-version-predicate
-                                                                                      :relation (intern (string-upcase (fset:lookup vp-map :relation)) :keyword)
-                                                                                      :version (fset:lookup vp-map :version))))))
-                                                      nil))))))
+                              collect (fset-map-to-requirement req-data)))
           nil))))
 
 (defun slurp-degasolv-repo (url)
@@ -162,6 +171,6 @@
     (list (lambda (nm)
             (let ((results (funcall (map-query fset-repo) nm)))
               (when results
-                (fset:map (lambda (item)
-                            (fset-map-to-package-info item))
-                          results)))))))
+                (gmap:gmap (:result fset:seq)
+                      #'fset-map-to-package-info
+                      (:arg fset:seq results))))))))

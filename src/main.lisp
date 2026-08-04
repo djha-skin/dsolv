@@ -58,6 +58,79 @@
 
 ;;; ─── Helpers ────────────────────────────────────────────────────────────────
 
+(defun json-escape (str)
+  "Escape a string for JSON output."
+  (with-output-to-string (s)
+    (loop for ch across str
+          do (case ch
+               (#\" (write-string "\\\"" s))
+               (#\\ (write-string "\\\\" s))
+               (#\newline (write-string "\\n" s))
+               (#\tab (write-string "\\t" s))
+               (#\return (write-string "\\r" s))
+               (t (write-char ch s))))))
+
+(defun spec-to-json (spec)
+  "Convert a SPEC (list of disjunctions of version predicates) to a JSON string."
+  (if (null spec)
+      "null"
+      (let ((disj-strings
+              (loop for disj in spec
+                    collect (let ((vp-strings
+                                   (loop for vp in disj
+                                         collect (format nil "{\"relation\":\"~a\",\"version\":\"~a\"}"
+                                                         (string-downcase (vp-relation vp))
+                                                         (json-escape (vp-version vp))))))
+                              (format nil "[~a]" (format nil "~{~a~^,~}" vp-strings))))))
+        (format nil "[~a]" (format nil "~{~a~^,~}" disj-strings)))))
+
+(defun req-term-to-json (req-term)
+  "Convert a requirement struct to a JSON string."
+  (let ((status (req-status req-term))
+        (id (req-id req-term))
+        (spec (req-spec req-term)))
+    (format nil "{\"status\":\"~a\",\"id\":\"~a\",\"spec\":~a}"
+            (string-downcase status)
+            (json-escape id)
+            (if spec
+                (let ((disj-strings
+                        (loop for disj in spec
+                              collect (let ((vp-strings
+                                             (loop for vp in disj
+                                                   collect (format nil "{\"relation\":\"~a\",\"version\":\"~a\"}"
+                                                                   (string-downcase (vp-relation vp))
+                                                                   (json-escape (vp-version vp))))))
+                                        (format nil "[~a]" (format nil "~{~a~^,~}" vp-strings))))))
+                  (format nil "[~a]" (format nil "~{~a~^,~}" disj-strings)))
+                "null"))))
+
+(defun problem-to-json (problem)
+  "Convert a problem plist to a JSON string."
+  (let ((term (getf problem :term))
+        (reason (getf problem :reason))
+        (pkg-id (getf problem :package-id))
+        (alternative (getf problem :alternative)))
+    (format nil "{~a,\"found-packages\":{},\"present-packages\":{},\"absent-specs\":{}~a~a~a}"
+            (format nil "\"term\":[~a]"
+                    (format nil "~{~a~^,~}"
+                            (loop for req in term
+                                  collect (req-term-to-json req))))
+            (if reason
+                (format nil ",\"reason\":\"~a\"" (string-downcase reason))
+                "")
+            (if alternative
+                (format nil ",\"alternative\":~a" (req-term-to-json alternative))
+                "")
+            (if pkg-id
+                (format nil ",\"package-id\":\"~a\"" (json-escape pkg-id))
+                ""))))
+
+(defun problems-to-json (problems)
+  "Convert a list of problem plists to a JSON array string."
+  (format nil "[~a]" (format nil "~{~a~^,~}"
+                             (loop for problem in problems
+                                   collect (problem-to-json problem)))))
+
 (defun exit-with (status-code msg)
   "Print MSG to stderr and exit with STATUS-CODE.
    STATUS-CODE is a keyword from CLIFF's *exit-codes* (e.g. :general-error).
@@ -238,7 +311,8 @@
                 (out-exit-with :system-error
                   (ecase (intern (string-upcase output-format) :keyword)
                     (:json
-                     (format nil "{\"result\":\"unsuccessful\",\"problems\":[...]}"))
+                     (format nil "{\"result\":\"unsuccessful\",\"problems\":~a}"
+                             (problems-to-json problems)))
                     (:plain
                      (format nil "~{~a~%~}" (mapcar #'explain-problem problems)))
                     (:edn

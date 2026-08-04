@@ -68,6 +68,27 @@ This project ports the **degasolv** dependency resolver from Clojure to Common L
 | `cl-ppcre` | Regular expressions | Use for version spec parsing, URL matching |
 | `parachute` | Unit testing framework | Use instead of Clojure's `deftest` |
 
+### fset gmap: General Mapping Over Collections
+
+⚠️ **DO NOT use `fset:map` for iteration over sequences.** `fset:map` is for
+map/pair data structures, not general iteration. Use `gmap` instead:
+
+```lisp
+;; Map a function over an fset seq, collecting into an fset seq:
+(gmap (:result fset:seq) #'function-to-call (:arg fset:seq input-seq))
+
+;; Map a function over an fset seq, collecting into a list:
+(gmap (:result list) #'function-to-call (:arg fset:seq input-seq))
+
+;; Map with two arguments from parallel sequences:
+(gmap (:result fset:seq) #'cons (:arg fset:seq seq1) (:arg fset:seq seq2))
+
+;; Map over an fset map (get keys and values as two args):
+(gmap (:result list) #'list (:arg fset:map my-map))
+```
+
+See https://fset.common-lisp.dev/Modern-CL/Top_html/GMap.html for full docs.
+
 ### fset: Mapping Clojure to Common Lisp
 
 Clojure ONLY has immutable (persistent) data structures. **fset** provides the same in CL.
@@ -202,6 +223,17 @@ Use `defgeneric` + `defmethod` only when methods dispatch on multiple types
 4. Get the test to pass
 5. Close the bead
 6. `bd dolt push` to sync progress
+
+### Running degasolv (Reference Implementation)
+
+The original degasolv Clojure implementation can be run for output comparison:
+
+```bash
+java -jar ~/Code/djha-skin/degasolv/target/uberjar/degasolv-2.3.0-SNAPSHOT-standalone.jar <args>
+```
+
+This is useful when porting tests — run the same command against both `./dsolv` and
+`degasolv` and compare outputs.
 
 ### Build & Run
 

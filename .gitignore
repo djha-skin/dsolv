@@ -24,3 +24,6 @@ com.djhaskin.dsolv
 *.bak
 index.dsrepo
 out.dscard
+
+# Generated test data
+test/resources/data/
