@@ -6,17 +6,17 @@
 
 (defpackage #:com.djhaskin.dsolv/pkgsys/git
   (:use #:cl)
-  (:import-from #:com.djhaskin.dsolv/resolver)
-  (:import-from #:fset)
-  (:local-nicknames
-    (#:f #:fset)
-    (#:resolver #:com.djhaskin.dsolv/resolver))
   (:export
     #:make-query))
 
 (in-package #:com.djhaskin.dsolv/pkgsys/git)
 
 (defun make-query (options)
-  "Create a repository query function from git options."
+  "Return NIL for the intentionally unimplemented Git package system.
+
+OPTIONS is accepted for compatibility with package-system query
+constructors.  The corresponding Clojure function has no body, so this
+port preserves its no-op, NIL-returning behavior rather than inventing
+Git repository semantics."
   (declare (ignore options))
-  (error "make-query not yet implemented"))
+  nil)
