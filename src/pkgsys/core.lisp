@@ -135,7 +135,7 @@
       :id (fset:lookup req-map :id)
       :spec (if (and spec (not (fset:empty? spec)))
                 (loop for disj in (fset:convert 'list spec)
-                      collect (loop for vp-data in disj
+                      collect (loop for vp-data in (fset:convert 'list disj)
                                     collect (fset-map-to-version-predicate vp-data)))
                 nil))))
 
@@ -149,7 +149,7 @@
       :requirements
       (if reqs
           (loop for clause in (fset:convert 'list reqs)
-                collect (loop for req-data in clause
+                collect (loop for req-data in (fset:convert 'list clause)
                               collect (fset-map-to-requirement req-data)))
           nil))))
 
@@ -171,6 +171,6 @@
     (list (lambda (nm)
             (let ((results (funcall (map-query fset-repo) nm)))
               (when results
-                (gmap:gmap (:result fset:seq)
+                (gmap:gmap (:result :seq)
                       #'fset-map-to-package-info
-                      (:arg fset:seq results))))))))
+                      (:arg :seq results))))))))

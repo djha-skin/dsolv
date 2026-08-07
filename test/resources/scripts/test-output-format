@@ -61,32 +61,32 @@ then
     exit 1
 fi
 
-# Test 4: EDN output (successful)
+# Test 4: NRDL output (successful)
 ${runthis} \
     resolve-locations \
-    --output-format edn \
+    --output-format nrdl \
     -R ${PWD}/index.dsrepo \
     --requirement "a<=1.0.0"
 
-# Test 5: EDN output (failed, no error format)
+# Test 5: NRDL output (failed, no error format)
 if \
     ${runthis} \
     resolve-locations \
-    --output-format edn \
+    --output-format nrdl \
     -R ${PWD}/index.dsrepo \
     --requirement "z<=1.0.0"
 then
     exit 1
 fi
 
-# Test 6: EDN output (failed, with error format)
+# Test 6: NRDL output (failed, with error format)
 if ! \
     ${runthis} \
         resolve-locations \
         --enable-error-format \
-        --output-format edn \
+        --output-format nrdl \
         -R ${PWD}/index.dsrepo \
-        --requirement "z<=1.0.0" | grep -q -E ':problems'
+        --requirement "z<=1.0.0" | grep -q -E ':problems|problems'
 then
     exit 1
 fi

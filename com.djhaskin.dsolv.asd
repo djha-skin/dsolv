@@ -8,6 +8,8 @@
                "alexandria"
                "cl-ppcre"
                "fset"
+               "chipz"
+               "babel"
                "dexador"
                "quri"
                "com.djhaskin.svers"
@@ -52,6 +54,7 @@
                  (:file "version-suggestions")
                  (:file "apt")
                  (:file "git")
+                 (:file "main")
                  (:file "subproc"))))
   :description "Test system for dsolv."
   :perform (asdf:test-op (op c)
@@ -73,4 +76,5 @@
                                              '#:com.djhaskin.dsolv/tests/version-suggestions
                                              '#:com.djhaskin.dsolv/tests/apt
                                              '#:com.djhaskin.dsolv/tests/git
+                                             '#:com.djhaskin.dsolv/tests/main
                                              '#:com.djhaskin.dsolv/tests/subproc))))

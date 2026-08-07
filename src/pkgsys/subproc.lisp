@@ -13,7 +13,7 @@
   (:import-from #:com.djhaskin.dsolv/util
     #:map-query)
   (:import-from #:fset)
-  (:import-from #:misc-extensions.gmap
+  (:import-from #:gmap
     #:gmap)
   (:local-nicknames
     (#:f #:fset)
@@ -41,7 +41,7 @@
     (lambda (acc id)
       (let* ((entries (fset:lookup raw-repo-info id))
              (converted
-               (gmap (:result fset:seq)
+               (gmap (:result :seq)
                      (lambda (entry)
                        (let* ((entry-id (or (fset:lookup entry :id) id))
                               (version (fset:lookup entry :version))
@@ -56,7 +56,7 @@
                            :version version
                            :location location
                            :requirements reqs)))
-                     (:arg fset:seq entries))))
+                     (:arg :seq entries))))
         (fset:with acc id converted)))
     (fset:domain raw-repo-info)
     :initial-value (fset:empty-map)))

@@ -15,6 +15,8 @@
   (:import-from #:fset)
   (:import-from #:cl-ppcre)
   (:import-from #:dexador)
+  (:import-from #:chipz)
+  (:import-from #:babel)
   (:local-nicknames
     (#:f #:fset)
     (#:resolver #:com.djhaskin.dsolv/resolver))
@@ -167,20 +169,25 @@
                    :initial-value (fset:empty-map))))
     (map-query repo-map)))
 
-(defun slurp-apt-repo (repospec)
-  "Read an APT repository from a repository specification string.
+(defun ensure-simple-octet-vector (value source)
+  "Return VALUE as a simple octet vector, or explain why SOURCE is invalid."
+  (unless (typep value '(array (unsigned-byte 8) (*)))
+    (error "Expected gzip octets from APT repository ~a, got ~s."
+           source (type-of value)))
+  (if (typep value '(simple-array (unsigned-byte 8) (*)))
+      value
+      (let ((octets (make-array (length value)
+                                :element-type '(unsigned-byte 8))))
+        (replace octets value)
+        octets)))
 
-  REPOSPEC format: 'pkgtype url dist pool1 pool2 ...'
-  Example: \"deb http://archive.ubuntu.com/ubuntu/ focal main universe\"
+(defun slurp-apt-repo (repospec &key (fetcher #'dexador:get))
+  "Read compressed APT package indexes specified by REPOSPEC.
 
-  If DIST contains a '/', it is treated as a direct path and combined
-  with URL to form the Packages.gz URL directly:
-    [url, dist, \"Packages.gz\"]
-
-  Otherwise, for each pool, the URL is constructed as:
-    [url, \"dists\", dist, pool, pkgtype, \"Packages.gz\"]
-
-  Returns a list of query functions (one per pool URL)."
+REPOSPEC has the form: pkgtype url dist pool1 pool2. For each pool, retrieve
+its Packages.gz index, decompress its UTF-8 contents, and return an APT
+repository query function. FETCHER receives the index URL and :FORCE-BINARY T;
+it defaults to DEXADOR:GET."
   (let* ((parts (cl-ppcre:split " +" repospec))
          (pkgtype (first parts))
          (url (second parts))
@@ -192,6 +199,17 @@
               (loop for pool in pools
                     collect (list url "dists" dist pool pkgtype "Packages.gz")))
           collect
-          (let* ((loc-str (format nil "~{~a~^/~}" loc))
-                 (body (dexador:get loc-str :want-stream nil)))
-            (apt-repo url body)))))
+          (let ((index-url (format nil "~{~a~^/~}" loc)))
+            (handler-case
+                (let* ((compressed
+                         (ensure-simple-octet-vector
+                          (funcall fetcher index-url :force-binary t)
+                          index-url))
+                       (contents
+                         (babel:octets-to-string
+                          (chipz:decompress nil 'chipz:gzip compressed)
+                          :encoding :utf-8)))
+                  (apt-repo url contents))
+              (error (condition)
+                (error "Could not read compressed APT index ~a: ~a"
+                       index-url condition)))))))

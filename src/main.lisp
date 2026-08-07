@@ -56,80 +56,64 @@
 
 (in-package #:com.djhaskin.dsolv)
 
-;;; ─── Helpers ────────────────────────────────────────────────────────────────
+;;; ─── NRDL struct serialization methods ──────────────────────────────────────
 
-(defun json-escape (str)
-  "Escape a string for JSON output."
-  (with-output-to-string (s)
-    (loop for ch across str
-          do (case ch
-               (#\" (write-string "\\\"" s))
-               (#\\ (write-string "\\\\" s))
-               (#\newline (write-string "\\n" s))
-               (#\tab (write-string "\\t" s))
-               (#\return (write-string "\\r" s))
-               (t (write-char ch s))))))
+(defmethod nrdl:emit-nrdl-struct (strm (val resolver:version-predicate)
+                                  pretty-indent indented-at
+                                  &key json-mode)
+  "Serialize a VERSION-PREDICATE struct as an NRDL dictionary."
+  (let ((ht (make-hash-table :test 'equal)))
+    (setf (gethash :relation ht) (vp-relation val))
+    (setf (gethash :version ht) (vp-version val))
+    (nrdl:inject-object strm ht pretty-indent indented-at :json-mode json-mode)))
 
-(defun spec-to-json (spec)
-  "Convert a SPEC (list of disjunctions of version predicates) to a JSON string."
-  (if (null spec)
-      "null"
-      (let ((disj-strings
-              (loop for disj in spec
-                    collect (let ((vp-strings
-                                   (loop for vp in disj
-                                         collect (format nil "{\"relation\":\"~a\",\"version\":\"~a\"}"
-                                                         (string-downcase (vp-relation vp))
-                                                         (json-escape (vp-version vp))))))
-                              (format nil "[~a]" (format nil "~{~a~^,~}" vp-strings))))))
-        (format nil "[~a]" (format nil "~{~a~^,~}" disj-strings)))))
+(defmethod nrdl:emit-nrdl-struct (strm (val resolver:requirement)
+                                  pretty-indent indented-at
+                                  &key json-mode)
+  "Serialize a REQUIREMENT struct as an NRDL dictionary."
+  (let ((ht (make-hash-table :test 'equal)))
+    (setf (gethash :status ht) (req-status val))
+    (setf (gethash :id ht) (req-id val))
+    (setf (gethash :spec ht) (req-spec val))
+    (nrdl:inject-object strm ht pretty-indent indented-at :json-mode json-mode)))
 
-(defun req-term-to-json (req-term)
-  "Convert a requirement struct to a JSON string."
-  (let ((status (req-status req-term))
-        (id (req-id req-term))
-        (spec (req-spec req-term)))
-    (format nil "{\"status\":\"~a\",\"id\":\"~a\",\"spec\":~a}"
-            (string-downcase status)
-            (json-escape id)
-            (if spec
-                (let ((disj-strings
-                        (loop for disj in spec
-                              collect (let ((vp-strings
-                                             (loop for vp in disj
-                                                   collect (format nil "{\"relation\":\"~a\",\"version\":\"~a\"}"
-                                                                   (string-downcase (vp-relation vp))
-                                                                   (json-escape (vp-version vp))))))
-                                        (format nil "[~a]" (format nil "~{~a~^,~}" vp-strings))))))
-                  (format nil "[~a]" (format nil "~{~a~^,~}" disj-strings)))
-                "null"))))
+(defmethod nrdl:emit-nrdl-struct (strm (val resolver:package-info)
+                                  pretty-indent indented-at
+                                  &key json-mode)
+  "Serialize a PACKAGE-INFO struct as an NRDL dictionary."
+  (let ((ht (make-hash-table :test 'equal)))
+    (setf (gethash :id ht) (pi-id val))
+    (setf (gethash :version ht) (pi-version val))
+    (setf (gethash :location ht) (pi-location val))
+    (setf (gethash :requirements ht) (pi-requirements val))
+    (nrdl:inject-object strm ht pretty-indent indented-at :json-mode json-mode)))
 
-(defun problem-to-json (problem)
-  "Convert a problem plist to a JSON string."
-  (let ((term (getf problem :term))
-        (reason (getf problem :reason))
-        (pkg-id (getf problem :package-id))
-        (alternative (getf problem :alternative)))
-    (format nil "{~a,\"found-packages\":{},\"present-packages\":{},\"absent-specs\":{}~a~a~a}"
-            (format nil "\"term\":[~a]"
-                    (format nil "~{~a~^,~}"
-                            (loop for req in term
-                                  collect (req-term-to-json req))))
-            (if reason
-                (format nil ",\"reason\":\"~a\"" (string-downcase reason))
-                "")
-            (if alternative
-                (format nil ",\"alternative\":~a" (req-term-to-json alternative))
-                "")
-            (if pkg-id
-                (format nil ",\"package-id\":\"~a\"" (json-escape pkg-id))
-                ""))))
+;;; ─── NRDL data conversion helpers ──────────────────────────────────────────
 
-(defun problems-to-json (problems)
-  "Convert a list of problem plists to a JSON array string."
-  (format nil "[~a]" (format nil "~{~a~^,~}"
-                             (loop for problem in problems
-                                   collect (problem-to-json problem)))))
+(defun problem-to-data (problem)
+  "Convert a problem plist to a hash table for NRDL serialization."
+  (let ((ht (make-hash-table :test 'equal)))
+    (setf (gethash :term ht)
+          (loop for req in (getf problem :term)
+                collect req))
+    (setf (gethash :found-packages ht) (make-hash-table :test 'equal))
+    (setf (gethash :present-packages ht) (make-hash-table :test 'equal))
+    (setf (gethash :absent-specs ht) (make-hash-table :test 'equal))
+    (let ((reason (getf problem :reason)))
+      (when reason
+        (setf (gethash :reason ht) reason)))
+    (let ((alternative (getf problem :alternative)))
+      (when alternative
+        (setf (gethash :alternative ht) alternative)))
+    (let ((pkg-id (getf problem :package-id)))
+      (when pkg-id
+        (setf (gethash :package-id ht) pkg-id)))
+    ht))
+
+(defun problems-to-data (problems)
+  "Convert a list of problem plists to a list of hash tables."
+  (loop for problem in problems
+        collect (problem-to-data problem)))
 
 (defun exit-with (status-code msg)
   "Print MSG to stderr and exit with STATUS-CODE.
@@ -297,12 +281,12 @@
               (:plain
                (loop for pkg in packages
                      do (format t "~a~%" (explain-package pkg))))
-              (:edn
-               (format t ":result :successful :packages (")
-               (loop for pkg in packages
-                     do (format t "#:package-info{:id \"~a\" :version \"~a\" :location \"~a\"} "
-                                (pi-id pkg) (pi-version pkg) (pi-location pkg)))
-               (format t ")~%")))
+              (:nrdl
+               (let ((ht (make-hash-table :test 'equal)))
+                 (setf (gethash :result ht) :successful)
+                 (setf (gethash :packages ht) (fset:convert 'list packages))
+                 (nrdl:generate-to t ht :pretty-indent 2))
+               (terpri))))
             (alexandria:alist-hash-table
               `((:status . :successful)
                 (:cliff-suppress-output . t))))
@@ -311,14 +295,21 @@
                 (out-exit-with :system-error
                   (ecase (intern (string-upcase output-format) :keyword)
                     (:json
-                     (format nil "{\"result\":\"unsuccessful\",\"problems\":~a}"
-                             (problems-to-json problems)))
+                     (let ((ht (make-hash-table :test 'equal)))
+                       (setf (gethash :result ht) :unsuccessful)
+                       (setf (gethash :problems ht) (problems-to-data problems))
+                       (with-output-to-string (s)
+                         (nrdl:generate-to s ht :json-mode t))))
+                    (:nrdl
+                     (let ((ht (make-hash-table :test 'equal)))
+                       (setf (gethash :result ht) :unsuccessful)
+                       (setf (gethash :problems ht) (problems-to-data problems))
+                       (with-output-to-string (s)
+                         (nrdl:generate-to s ht :pretty-indent 2))))
                     (:plain
-                     (format nil "~{~a~%~}" (mapcar #'explain-problem problems)))
-                    (:edn
-                     (format nil ":result :unsuccessful :problems ~a" problems))))
+                     (format nil "~{~a~%~}" (mapcar #'explain-problem problems)))))
                 (exit-with :system-error
-                  (format nil "~{~a~%~}" (mapcar #'explain-problem problems)))))))))
+                  (format nil "~{~a~%~}" (mapcar #'explain-problem problems))))))))
 
 ;;; ─── Subcommand: generate-repo-index ────────────────────────────────────────
 
@@ -426,11 +417,9 @@
          (error-format (ht-get options :error-format t))
          (version-comparator (get-version-comparator options))
          (pkg-sys-entry (gethash package-system *package-systems*)))
-
     (unless (and repositories query)
       (return-from query-repo-fn
         (exit-with :general-error "Missing required arguments: --set-repositories, --set-query")))
-
     (let* ((genrepo (getf pkg-sys-entry :genrepo))
            (aggregate-repo
              (aggregate-repositories
@@ -452,7 +441,12 @@
                 (ecase (intern (string-upcase output-format) :keyword)
                   (:json "{\"result\":\"unsuccessful\",\"message\":\"No results returned from query\"}")
                   (:plain "No results returned from query")
-                  (:edn ":result :unsuccessful :message \"No results returned from query\"")))
+                  (:nrdl
+                   (let ((ht (make-hash-table :test 'equal)))
+                     (setf (gethash :result ht) :unsuccessful)
+                     (setf (gethash :message ht) "No results returned from query")
+                     (nrdl:generate-to t ht :pretty-indent 2))
+                   (terpri))))
               (exit-with :data-format-error "No results returned from query"))
           (ecase (intern (string-upcase output-format) :keyword)
             (:json
@@ -464,15 +458,16 @@
             (:plain
              (fset:do-seq (pkg results)
                (format t "~a~%" (explain-package pkg))))
-            (:edn
-             (fset:do-seq (pkg results)
-               (format t "#:package-info{:id \"~a\" :version \"~a\" :location \"~a\"}~%"
-                       (pi-id pkg) (pi-version pkg) (pi-location pkg))))))
+            (:nrdl
+             (let ((ht (make-hash-table :test 'equal)))
+               (setf (gethash :packages ht) (fset:convert 'list results))
+               (nrdl:generate-to t ht :pretty-indent 2))
+             (terpri))))
       (alexandria:alist-hash-table
         `((:status . :successful)
           (:cliff-suppress-output . t))))))
 
-;;; ─── Subcommand: display-config ─────────────────────────────────────────────
+;;; ─── Subcommand: display-config ─────────────────────────────────────────────;;; ─── Subcommand: display-config ─────────────────────────────────────────────
 
 (defun display-config-fn (options)
   "Display the effective configuration."
@@ -489,14 +484,18 @@
        (maphash (lambda (k v)
                   (format t "  ~s: ~s~%" k v))
                 options))
-      (:edn
-       (format t ":effective-configuration~%")
-       (maphash (lambda (k v)
-                  (format t "  ~s ~s~%" k v))
-                options))))
+      (:nrdl
+       (let ((ht (make-hash-table :test 'equal)))
+         (setf (gethash :effective-configuration ht)
+               (loop for k being the hash-key of options
+                     using (hash-value v)
+                     collect (cons k v)))
+         (nrdl:generate-to t ht :pretty-indent 2))
+       (terpri))))
   (alexandria:alist-hash-table
     `((:status . :successful)
-     (:cliff-suppress-output . t))))
+      (:cliff-suppress-output . t))))
+
 ;;; ─── Default function ───────────────────────────────────────────────────────
 
 (defun default-fn (options)
@@ -546,11 +545,11 @@
         (list :genrepo 'slurp-apt-repo
               :version-comparison "debian"))
   (setf (gethash "git" *package-systems*)
-        (list :query-constructor 'make-query
+        (list :query-constructor #'com.djhaskin.dsolv/pkgsys/git:make-query
               :version-comparison "semver"
               :required-arguments
               (let ((h (make-hash-table :test 'equal)))
-                (setf (gethash "clone-folder" h) "clone-folder")
+                (setf (gethash :clone-folder h) "clone-folder")
                 h)))
   (setf (gethash "subproc" *package-systems*)
         (list :repo-constructor 'make-slurper

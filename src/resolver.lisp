@@ -178,7 +178,7 @@
 (defparameter *subcommand-option-defaults*
   (let ((table (make-hash-table :test 'equal)))
     (setf (gethash :alternatives table) t)
-    (setf (gethash :error-format table) t)
+    (setf (gethash :error-format table) nil)
     (setf (gethash :card-file table) "./out.dscard")
     (setf (gethash :conflict-strat table) "exclusive")
     (setf (gethash :index-file table) "index.dsrepo")

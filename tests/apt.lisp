@@ -23,7 +23,8 @@
     #:make-package-info)
   (:import-from #:com.djhaskin.dsolv/pkgsys/apt
     #:deb-to-degasolv-requirements
-    #:apt-repo)
+    #:apt-repo
+    #:slurp-apt-repo)
   (:import-from #:com.djhaskin.svers
     #:maven-vercmp)
   (:import-from #:fset)
@@ -31,7 +32,8 @@
     #:define-test
     #:true
     #:false
-    #:is)
+    #:is
+    #:fail)
   (:local-nicknames
     (#:f #:fset)))
 
@@ -173,3 +175,81 @@ Supported: 9m")
       (true (not (f:empty? apmd-result)))
       (is string= "a11y-profile-manager-doc" (pi-id (f:first apmd-result)))
       (is string= "0.1.11-0ubuntu3" (pi-version (f:first apmd-result))))))
+
+;;; ─── Tests: compressed Packages.gz support ──────────────────────────────────
+
+
+(defun gzip-fixture-path ()
+  "Return the path to the hermetic compressed Packages fixture."
+  (merge-pathnames #P"test/resources/apt/fixtures/Packages.gz"
+                   (asdf:system-source-directory "com.djhaskin.dsolv")))
+
+(defun fixture-octets (path)
+  "Read PATH as an unsigned-byte octet vector."
+  (with-open-file (stream path :direction :input
+                               :element-type '(unsigned-byte 8))
+    (let ((octets (make-array (file-length stream)
+                              :element-type '(unsigned-byte 8))))
+      (read-sequence octets stream)
+      octets)))
+
+(defun slurp-error-message (fetcher)
+  "Return the error text produced by the compressed APT slurper and FETCHER."
+  (handler-case
+      (progn
+        (slurp-apt-repo "deb https://apt.example stable main" :fetcher fetcher)
+        nil)
+    (error (condition)
+      (princ-to-string condition))))
+
+(define-test slurp-apt-repo-gzip-test
+  :parent nil
+  "The public APT slurper must decompress Packages.gz before parsing it."
+  (let ((requested-url nil)
+        (fixture (gzip-fixture-path)))
+    (let* ((repositories
+             (slurp-apt-repo
+              "deb https://apt.example stable main"
+              :fetcher
+              (lambda (url &key force-binary)
+                (setf requested-url url)
+                (true force-binary)
+                (fixture-octets fixture))))
+           (packages (funcall (first repositories) "gzip-fixture"))
+           (package (first (fset:convert 'list packages))))
+      (is = 1 (length repositories))
+      (is string=
+          "https://apt.example/dists/stable/main/deb/Packages.gz"
+          requested-url)
+      (is string= "gzip-fixture" (pi-id package))
+      (is string= "1.2.3" (pi-version package))
+      (is string=
+          "https://apt.example/pool/fixtures/gzip-fixture_1.2.3_all.deb"
+          (pi-location package)))))
+
+(define-test slurp-apt-repo-reports-fetch-errors
+  :parent nil
+  "The APT slurper identifies an unavailable compressed index."
+  (let ((message
+          (slurp-error-message
+           (lambda (url &key force-binary)
+             (declare (ignore url force-binary))
+             (error "fixture unavailable")))))
+    (true (search "Could not read compressed APT index" message))
+    (true (search "https://apt.example/dists/stable/main/deb/Packages.gz"
+                  message))
+    (true (search "fixture unavailable" message))))
+
+(define-test slurp-apt-repo-reports-malformed-gzip
+  :parent nil
+  "The APT slurper identifies a malformed compressed index."
+  (let ((message
+          (slurp-error-message
+           (lambda (url &key force-binary)
+             (declare (ignore url force-binary))
+             (make-array 3
+                         :element-type '(unsigned-byte 8)
+                         :initial-contents '(1 2 3))))))
+    (true (search "Could not read compressed APT index" message))
+    (true (search "https://apt.example/dists/stable/main/deb/Packages.gz"
+                  message))))
