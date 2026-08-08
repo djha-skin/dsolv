@@ -31,7 +31,9 @@ folder.
 
 6. Address the concerns.
 
-7. For each bead, commit and push work done per the above workflow.
+7. For each bead, commit and push work done per the above workflow. Add an entry
+   to the changelog as appropriate. Keep a changelog as set forth here:
+   https://keepachangelog.com/en/1.1.0/
 
 ## Tooling
 
