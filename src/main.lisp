@@ -59,8 +59,8 @@
 ;;; ─── NRDL struct serialization methods ──────────────────────────────────────
 
 (defmethod nrdl:emit-nrdl-struct (strm (val resolver:version-predicate)
-                                  pretty-indent indented-at
-                                  &key json-mode)
+                                       pretty-indent indented-at
+                                       &key json-mode)
   "Serialize a VERSION-PREDICATE struct as an NRDL dictionary."
   (let ((ht (make-hash-table :test 'equal)))
     (setf (gethash :relation ht) (vp-relation val))
@@ -68,8 +68,8 @@
     (nrdl:inject-object strm ht pretty-indent indented-at :json-mode json-mode)))
 
 (defmethod nrdl:emit-nrdl-struct (strm (val resolver:requirement)
-                                  pretty-indent indented-at
-                                  &key json-mode)
+                                       pretty-indent indented-at
+                                       &key json-mode)
   "Serialize a REQUIREMENT struct as an NRDL dictionary."
   (let ((ht (make-hash-table :test 'equal)))
     (setf (gethash :status ht) (req-status val))
@@ -78,8 +78,8 @@
     (nrdl:inject-object strm ht pretty-indent indented-at :json-mode json-mode)))
 
 (defmethod nrdl:emit-nrdl-struct (strm (val resolver:package-info)
-                                  pretty-indent indented-at
-                                  &key json-mode)
+                                       pretty-indent indented-at
+                                       &key json-mode)
   "Serialize a PACKAGE-INFO struct as an NRDL dictionary."
   (let ((ht (make-hash-table :test 'equal)))
     (setf (gethash :id ht) (pi-id val))
@@ -144,7 +144,7 @@
     (if found
         val
         (multiple-value-bind (dval dfound)
-            (gethash key *subcommand-option-defaults*)
+                             (gethash key *subcommand-option-defaults*)
           (declare (ignore dfound))
           dval))))
 
@@ -212,8 +212,8 @@
                    (declare (ignore val))
                    (unless (gethash key options)
                      (return-from resolve-locations-fn
-                       (exit-with :general-error
-                         (format nil "Missing required argument: ~a" key)))))
+                                  (exit-with :general-error
+                                             (format nil "Missing required argument: ~a" key)))))
                  req-args)))
 
     ;; Check repositories requirement (if no query-constructor)
@@ -221,7 +221,7 @@
       (let ((repos (ht-get options :repositories)))
         (unless (and repos (listp repos) (not (null repos)))
           (return-from resolve-locations-fn
-            (exit-with :general-error "Missing required argument: --set-repositories")))))
+                       (exit-with :general-error "Missing required argument: --set-repositories")))))
 
     ;; Parse requirements
     (let* ((requirement-data
@@ -234,11 +234,11 @@
                      for id = (first split)
                      for version = (second split)
                      do (setf map (f:with map id
-                                            (cons (make-package-info
-                                                    :id id
-                                                    :version version
-                                                    :location "already present")
-                                                  (f:lookup map id)))))
+                                          (cons (make-package-info
+                                                  :id id
+                                                  :version version
+                                                  :location "already present")
+                                                (f:lookup map id)))))
                map))
            (query
              (if (getf pkg-sys-entry :query-constructor)
@@ -286,30 +286,30 @@
                  (setf (gethash :result ht) :successful)
                  (setf (gethash :packages ht) (fset:convert 'list packages))
                  (nrdl:generate-to t ht :pretty-indent 2))
-               (terpri))))
+               (terpri)))
             (alexandria:alist-hash-table
               `((:status . :successful)
                 (:cliff-suppress-output . t))))
           (let ((problems (getf result :problems)))
             (if error-format
                 (out-exit-with :system-error
-                  (ecase (intern (string-upcase output-format) :keyword)
-                    (:json
-                     (let ((ht (make-hash-table :test 'equal)))
-                       (setf (gethash :result ht) :unsuccessful)
-                       (setf (gethash :problems ht) (problems-to-data problems))
-                       (with-output-to-string (s)
-                         (nrdl:generate-to s ht :json-mode t))))
-                    (:nrdl
-                     (let ((ht (make-hash-table :test 'equal)))
-                       (setf (gethash :result ht) :unsuccessful)
-                       (setf (gethash :problems ht) (problems-to-data problems))
-                       (with-output-to-string (s)
-                         (nrdl:generate-to s ht :pretty-indent 2))))
-                    (:plain
-                     (format nil "~{~a~%~}" (mapcar #'explain-problem problems)))))
+                               (ecase (intern (string-upcase output-format) :keyword)
+                                 (:json
+                                  (let ((ht (make-hash-table :test 'equal)))
+                                    (setf (gethash :result ht) :unsuccessful)
+                                    (setf (gethash :problems ht) (problems-to-data problems))
+                                    (with-output-to-string (s)
+                                      (nrdl:generate-to s ht :json-mode t))))
+                                 (:nrdl
+                                  (let ((ht (make-hash-table :test 'equal)))
+                                    (setf (gethash :result ht) :unsuccessful)
+                                    (setf (gethash :problems ht) (problems-to-data problems))
+                                    (with-output-to-string (s)
+                                      (nrdl:generate-to s ht :pretty-indent 2))))
+                                 (:plain
+                                  (format nil "~{~a~%~}" (mapcar #'explain-problem problems)))))
                 (exit-with :system-error
-                  (format nil "~{~a~%~}" (mapcar #'explain-problem problems))))))))
+                           (format nil "~{~a~%~}" (mapcar #'explain-problem problems)))))))))
 
 ;;; ─── Subcommand: generate-repo-index ────────────────────────────────────────
 
@@ -374,10 +374,10 @@
          (meta (ht-get options :meta)))
     (unless (and id version location)
       (return-from generate-card-fn
-        (exit-with :general-error "Missing required arguments: --set-id, --set-version, --set-location")))
+                   (exit-with :general-error "Missing required arguments: --set-id, --set-version, --set-location")))
     (let* ((reqs (loop for r in requirements
-                        collect (loop for req in (string-to-requirement r)
-                                      collect (requirement-to-data req))))
+                       collect (loop for req in (string-to-requirement r)
+                                     collect (requirement-to-data req))))
            (pkg-data (let ((ht (alexandria:alist-hash-table
                                  (list (cons :id id)
                                        (cons :version version)
@@ -419,7 +419,7 @@
          (pkg-sys-entry (gethash package-system *package-systems*)))
     (unless (and repositories query)
       (return-from query-repo-fn
-        (exit-with :general-error "Missing required arguments: --set-repositories, --set-query")))
+                   (exit-with :general-error "Missing required arguments: --set-repositories, --set-query")))
     (let* ((genrepo (getf pkg-sys-entry :genrepo))
            (aggregate-repo
              (aggregate-repositories
@@ -432,32 +432,32 @@
            (spec (req-spec parsed-req))
            (spec-call (make-spec-call version-comparator))
            (results (fset:filter
-                     (lambda (pkg)
-                       (funcall spec-call spec pkg))
-                     (funcall aggregate-repo id))))
+                      (lambda (pkg)
+                        (funcall spec-call spec pkg))
+                      (funcall aggregate-repo id))))
       (if (fset:empty? results)
           (if error-format
               (out-exit-with :data-format-error
-                (ecase (intern (string-upcase output-format) :keyword)
-                  (:json "{\"result\":\"unsuccessful\",\"message\":\"No results returned from query\"}")
-                  (:plain "No results returned from query")
-                  (:nrdl
-                   (let ((ht (make-hash-table :test 'equal)))
-                     (setf (gethash :result ht) :unsuccessful)
-                     (setf (gethash :message ht) "No results returned from query")
-                     (nrdl:generate-to t ht :pretty-indent 2))
-                   (terpri))))
+                             (ecase (intern (string-upcase output-format) :keyword)
+                               (:json "{\"result\":\"unsuccessful\",\"message\":\"No results returned from query\"}")
+                               (:plain "No results returned from query")
+                               (:nrdl
+                                (let ((ht (make-hash-table :test 'equal)))
+                                  (setf (gethash :result ht) :unsuccessful)
+                                  (setf (gethash :message ht) "No results returned from query")
+                                  (nrdl:generate-to t ht :pretty-indent 2))
+                                (terpri))))
               (exit-with :data-format-error "No results returned from query"))
           (ecase (intern (string-upcase output-format) :keyword)
             (:json
              (format t "{\"packages\":[~%")
              (fset:do-seq (pkg results)
-               (format t "  {\"id\":\"~a\",\"version\":\"~a\",\"location\":\"~a\"}~%"
-                       (pi-id pkg) (pi-version pkg) (pi-location pkg)))
+                          (format t "  {\"id\":\"~a\",\"version\":\"~a\",\"location\":\"~a\"}~%"
+                                  (pi-id pkg) (pi-version pkg) (pi-location pkg)))
              (format t "]}~%"))
             (:plain
              (fset:do-seq (pkg results)
-               (format t "~a~%" (explain-package pkg))))
+                          (format t "~a~%" (explain-package pkg))))
             (:nrdl
              (let ((ht (make-hash-table :test 'equal)))
                (setf (gethash :packages ht) (fset:convert 'list results))
@@ -514,7 +514,7 @@
   (format t "Run `dsolv <subcommand> --enable-help` for help on a specific subcommand.~%")
   (alexandria:alist-hash-table
     `((:status . :successful)
-     (:cliff-suppress-output . t))))
+      (:cliff-suppress-output . t))))
 ;;; ─── Version comparators hash table ─────────────────────────────────────────
 
 ;; Populate *version-comparators* with all available comparators from svers
@@ -555,7 +555,7 @@
         (list :repo-constructor 'make-slurper
               :required-arguments
               (let ((h (make-hash-table :test 'equal)))
-                (setf (gethash "subproc-exe" h) "subproc-exe")
+                (setf (gethash :subproc-exe h) "subproc-exe")
                 h))))
 
 ;;; ─── Main entry point ───────────────────────────────────────────────────────

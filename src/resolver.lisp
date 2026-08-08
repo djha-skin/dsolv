@@ -171,7 +171,7 @@
           (list :repo-constructor 'make-slurper
                 :required-arguments
                 (let ((h (make-hash-table :test 'equal)))
-                  (setf (gethash "subproc-exe" h) "subproc-exe")
+                  (setf (gethash :subproc-exe h) "subproc-exe")
                   h)))
     table))
 
@@ -334,9 +334,9 @@
               (if found
                   (explain-package-list
                     (fset:reduce (lambda (acc key)
-                                  (append acc (fset:lookup found key)))
-                                (fset:domain found)
-                                :initial-value '())
+                                   (append acc (fset:lookup found key)))
+                                 (fset:domain found)
+                                 :initial-value '())
                     "Packages selected")
                   "")))
     (let ((present-pkgs (getf problem :present-packages)))
@@ -344,9 +344,9 @@
         (format out "~%~a"
                 (explain-package-list
                   (fset:reduce (lambda (acc key)
-                                (append acc (fset:lookup present-pkgs key)))
-                              (fset:domain present-pkgs)
-                              :initial-value '())
+                                 (append acc (fset:lookup present-pkgs key)))
+                               (fset:domain present-pkgs)
+                               :initial-value '())
                   "Packages already present"))))
     (let ((alt (getf problem :alternative)))
       (when alt
@@ -459,7 +459,7 @@
                                                    (fset:with parents v)
                                                    v)))
                                            (destructuring-bind (grandchildren-list grandchildren-visited)
-                                               grandchildren-result
+                                                               grandchildren-result
                                              (let ((base-pkg-list (append pkg-list grandchildren-list))
                                                    (base-visited (fset:union visited grandchildren-visited)))
                                                (if (and (eql list-strat :eager)
@@ -469,16 +469,16 @@
                                                    (list base-pkg-list base-visited)))))))
                                      children
                                      :initial-value (list nil already-visited))))
-                         (if (eql list-strat :lazy)
-                             (let ((visited-from-children (second result))
-                                   (list-from-children (first result)))
-                               (list (append list-from-children
-                                             (remove-if (lambda (c) (fset:member? c visited-from-children))
-                                                        children))
-                                     (reduce (lambda (s c) (fset:with s c))
-                                             children
-                                             :initial-value visited-from-children)))
-                             result))))))
+                       (if (eql list-strat :lazy)
+                           (let ((visited-from-children (second result))
+                                 (list-from-children (first result)))
+                             (list (append list-from-children
+                                           (remove-if (lambda (c) (fset:member? c visited-from-children))
+                                                      children))
+                                   (reduce (lambda (s c) (fset:with s c))
+                                           children
+                                           :initial-value visited-from-children)))
+                           result))))))
       (first (list-pkgs-rec (fset:empty-set)
                             (fset:with (fset:empty-set) :root)
                             :root)))))
@@ -528,15 +528,15 @@
           (if sug-b
               (setf (getf result :suggestions)
                     (fset:reduce
-                     (lambda (merged key)
-                       (let ((vb (fset:lookup sug-b key))
-                             (va (fset:lookup sug-a key)))
-                         (if va
-                             (fset:with merged key
-                                        (intersection va vb))
-                             (fset:with merged key vb))))
-                     (fset:domain sug-b)
-                     :initial-value sug-a))
+                      (lambda (merged key)
+                        (let ((vb (fset:lookup sug-b key))
+                              (va (fset:lookup sug-a key)))
+                          (if va
+                              (fset:with merged key
+                                         (intersection va vb))
+                              (fset:with merged key vb))))
+                      (fset:domain sug-b)
+                      :initial-value sug-a))
               (setf (getf result :suggestions) sug-a))
           (setf (getf result :suggestions) sug-b)))
     result))
@@ -647,10 +647,10 @@
                  (if (null clause)
                      (funcall mkerror :empty-alternative-set)
                      (let* ((hoisted (hoist
-                                      (funcall cull-alternatives clause)
-                                      absent-specs found-packages
-                                      present-packages))
-(clause-result
+                                       (funcall cull-alternatives clause)
+                                       absent-specs found-packages
+                                       present-packages))
+                            (clause-result
                               ;; Short-circuit: evaluate alternatives lazily,
                               ;; stopping at the first successful result.
                               ;; This mirrors Clojure's lazy `for` + `some`
@@ -674,7 +674,7 @@
                                                   :initial-value nil))))))
                        clause-result)))))
          (resolve-alternative (alternative mkerror rclauses parent
-                                 found-packages absent-specs package-graph)
+                                           found-packages absent-specs package-graph)
            "Resolve a single alternative.  FOUND-PACKAGES, ABSENT-SPECS,
             and PACKAGE-GRAPH are passed explicitly so they reflect the
             current recursion state, not the initial values from the outer
@@ -766,7 +766,7 @@
                           (t (funcall pkg-error :uncovered-case)))))))
                (t nil)))))
       (resolve-deps found-packages absent-specs clauses package-graph))))
-                            (defun update-package-graph (graph parent child)
+(defun update-package-graph (graph parent child)
   "Add CHILD as a dependency of PARENT in the graph.
   Returns a new fset map; the original is unchanged."
   (fset:with graph parent

@@ -2,6 +2,25 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+### Added
+
+- Implement the `subproc` package system slurper (`make-slurper` in
+  `src/pkgsys/subproc.lisp`): runs an external executable, parses its JSON or
+  NRDL output, and converts it into resolver query functions. Includes tests
+  for JSON/NRDL parsing, non-zero exit handling, and unknown output formats.
+
+### Fixed
+
+- Fix `resolve-locations` exit status: misbalanced parens in
+  `resolve-locations-fn` left the success result map orphaned, so every
+  successful resolution fell through to the error path and exited with status
+  71 (`:system-error`). Successful resolutions now exit 0.
+- Register the `subproc` package system's required argument under the keyword
+  `:subproc-exe` (was the string `"subproc-exe"`), so the CLI's
+  required-argument check works.
+
 ## [0.1.0] - 2025-07-31
 
 ### Added

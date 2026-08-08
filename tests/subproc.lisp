@@ -8,15 +8,14 @@
 (defpackage #:com.djhaskin.dsolv/tests/subproc
   (:use #:cl)
   (:import-from #:com.djhaskin.dsolv/resolver
-    #:present
-    #:make-version-predicate
     #:pi-id
     #:pi-version
     #:pi-location
     #:pi-requirements
     #:make-package-info)
   (:import-from #:com.djhaskin.dsolv/pkgsys/subproc
-    #:convert-input)
+    #:convert-input
+    #:make-slurper)
   (:import-from #:com.djhaskin.svers
     #:maven-vercmp)
   (:import-from #:fset)
@@ -24,7 +23,8 @@
     #:define-test
     #:true
     #:false
-    #:is)
+    #:is
+    #:fail)
   (:local-nicknames
     (#:f #:fset)))
 
@@ -41,67 +41,143 @@
 ;;; ─── Tests: convert-input ───────────────────────────────────────────────────
 
 (define-test convert-input-test
-  :parent nil
-  "Test the convert-input function that converts raw repository info
+             :parent nil
+             "Test the convert-input function that converts raw repository info
    from external executables to fset maps of package-info structures."
-  ;; Empty cases
-  (true (fset:empty? (convert-input (f:empty-map))))
-  (let ((result (convert-input
-                  (fset:convert 'fset:map
-                    (list (cons "a" (f:empty-seq))
-                          (cons "b" (f:empty-seq)))))))
-    (true (not (null (fset:lookup result "a"))))
-    (true (not (null (fset:lookup result "b"))))
-    (true (fset:empty? (fset:lookup result "a")))
-    (true (fset:empty? (fset:lookup result "b"))))
-  ;; Basic case
-  (let* ((raw (fset:convert 'fset:map
-                (list (cons "a"
-                        (fset:convert 'fset:seq
-                          (list (fset:convert 'fset:map
-                                  (list (cons :id "a")
-                                        (cons :version "1.0.0")
-                                        (cons :location "yurt")))))))))
-         (result (convert-input raw))
-         (pkgs (fset:lookup result "a")))
-    (true (not (null pkgs)))
-    (let ((pkg (fset:first pkgs)))
-      (is string= "a" (pi-id pkg))
-      (is string= "1.0.0" (pi-version pkg))
-      (is string= "yurt" (pi-location pkg))))
-  ;; Metadata case
-  (let* ((raw (fset:convert 'fset:map
-                (list (cons "a"
-                        (fset:convert 'fset:seq
-                          (list (fset:convert 'fset:map
-                                  (list (cons :id "a")
-                                        (cons :version "1.0.0")
-                                        (cons :location "yurt")
-                                        (cons :foo "bar")))))))))
-         (result (convert-input raw))
-         (pkgs (fset:lookup result "a")))
-    (true (not (null pkgs)))
-    (let ((pkg (fset:first pkgs)))
-      (is string= "a" (pi-id pkg))
-      (is string= "1.0.0" (pi-version pkg))
-      (is string= "yurt" (pi-location pkg))))
-  ;; Requirements case
-  (let* ((raw (fset:convert 'fset:map
-                (list (cons "a"
-                        (fset:convert 'fset:seq
-                          (list (fset:convert 'fset:map
-                                  (list (cons :id "a")
-                                        (cons :version "1.0.0")
-                                        (cons :location "yurt")
-                                        (cons :requirements
-                                          (fset:convert 'fset:seq
-                                            (list "b>=2.0,<3.0|c")))))))))))
-         (result (convert-input raw))
-         (pkgs (fset:lookup result "a")))
-    (true (not (null pkgs)))
-    (let ((pkg (fset:first pkgs)))
-      (is string= "a" (pi-id pkg))
-      (is string= "1.0.0" (pi-version pkg))
-      (is string= "yurt" (pi-location pkg))
-      ;; Should have parsed requirements
-      (true (not (null (pi-requirements pkg)))))))
+             ;; Empty cases
+             (true (fset:empty? (convert-input (f:empty-map))))
+             (let ((result (convert-input
+                             (fset:convert 'fset:map
+                                           (list (cons "a" (f:empty-seq))
+                                                 (cons "b" (f:empty-seq)))))))
+               (true (not (null (fset:lookup result "a"))))
+               (true (not (null (fset:lookup result "b"))))
+               (true (fset:empty? (fset:lookup result "a")))
+               (true (fset:empty? (fset:lookup result "b"))))
+             ;; Basic case
+             (let* ((raw (fset:convert 'fset:map
+                                       (list (cons "a"
+                                                   (fset:convert 'fset:seq
+                                                                 (list (fset:convert 'fset:map
+                                                                                     (list (cons :id "a")
+                                                                                           (cons :version "1.0.0")
+                                                                                           (cons :location "yurt")))))))))
+                    (result (convert-input raw))
+                    (pkgs (fset:lookup result "a")))
+               (true (not (null pkgs)))
+               (let ((pkg (fset:first pkgs)))
+                 (is string= "a" (pi-id pkg))
+                 (is string= "1.0.0" (pi-version pkg))
+                 (is string= "yurt" (pi-location pkg))))
+             ;; Metadata case
+             (let* ((raw (fset:convert 'fset:map
+                                       (list (cons "a"
+                                                   (fset:convert 'fset:seq
+                                                                 (list (fset:convert 'fset:map
+                                                                                     (list (cons :id "a")
+                                                                                           (cons :version "1.0.0")
+                                                                                           (cons :location "yurt")
+                                                                                           (cons :foo "bar")))))))))
+                    (result (convert-input raw))
+                    (pkgs (fset:lookup result "a")))
+               (true (not (null pkgs)))
+               (let ((pkg (fset:first pkgs)))
+                 (is string= "a" (pi-id pkg))
+                 (is string= "1.0.0" (pi-version pkg))
+                 (is string= "yurt" (pi-location pkg))))
+             ;; Requirements case
+             (let* ((raw (fset:convert 'fset:map
+                                       (list (cons "a"
+                                                   (fset:convert 'fset:seq
+                                                                 (list (fset:convert 'fset:map
+                                                                                     (list (cons :id "a")
+                                                                                           (cons :version "1.0.0")
+                                                                                           (cons :location "yurt")
+                                                                                           (cons :requirements
+                                                                                                 (fset:convert 'fset:seq
+                                                                                                               (list "b>=2.0,<3.0|c")))))))))))
+                    (result (convert-input raw))
+                    (pkgs (fset:lookup result "a")))
+               (true (not (null pkgs)))
+               (let ((pkg (fset:first pkgs)))
+                 (is string= "a" (pi-id pkg))
+                 (is string= "1.0.0" (pi-version pkg))
+                 (is string= "yurt" (pi-location pkg))
+                 ;; Should have parsed requirements
+                 (true (not (null (pi-requirements pkg)))))))
+
+;;; ─── Helper: fixture script paths ───────────────────────────────────────────
+
+(defun script-path (name)
+  "Return the absolute path to a fixture script in test/resources/scripts."
+  (namestring
+    (merge-pathnames
+      (make-pathname :directory '(:relative "test" "resources" "scripts")
+                     :name name)
+      (asdf:system-source-directory "com.djhaskin.dsolv"))))
+
+(defun slurper-options (script &optional (format "json"))
+  "Build an options hash table for MAKE-SLURPER pointing at SCRIPT."
+  (let ((options (make-hash-table :test 'equal)))
+    (setf (gethash :subproc-exe options) script)
+    (setf (gethash :subproc-output-format options) format)
+    options))
+
+;;; ─── Tests: make-slurper ────────────────────────────────────────────────────
+
+(define-test make-slurper-json-test
+             :parent nil
+             "MAKE-SLURPER runs the executable and parses its JSON output into
+   a query function."
+             (let* ((slurper (make-slurper
+                               (slurper-options (script-path "subproc"))))
+                    (query-fns (funcall slurper "thisdoesntmatter"))
+                    (query (first query-fns)))
+               (is = 1 (length query-fns))
+               (let ((results (funcall query "a")))
+                 (true (not (null results)))
+                 (is = 2 (fset:size results))
+                 (let ((pkg (fset:first results)))
+                   (is string= "a" (pi-id pkg))
+                   (is string= "2.1.0" (pi-version pkg))
+                   (is string= "https://example.com/repo/a-1.0.0.zip"
+                       (pi-location pkg))))))
+
+(define-test make-slurper-nrdl-test
+             :parent nil
+             "MAKE-SLURPER parses NRDL output when :subproc-output-format is
+   \"nrdl\"."
+             (let* ((slurper (make-slurper
+                               (slurper-options (script-path "subproc-nrdl")
+                                                "nrdl")))
+                    (query-fns (funcall slurper "thisdoesntmatter"))
+                    (query (first query-fns)))
+               (is = 1 (length query-fns))
+               (let ((results (funcall query "a")))
+                 (true (not (null results)))
+                 (is = 2 (fset:size results))
+                 (let ((pkg (fset:first results)))
+                   (is string= "a" (pi-id pkg))
+                   (is string= "2.1.0" (pi-version pkg))))))
+
+(define-test make-slurper-bad-exit-test
+             :parent nil
+             "MAKE-SLURPER signals an error when the executable exits non-zero."
+             (handler-case
+                 (let ((slurper (make-slurper
+                                  (slurper-options (script-path "bad-subproc")))))
+                   (funcall slurper "thisdoesntmatter")
+                   (fail "Expected an error from a non-zero exit"))
+               (error () nil)))
+
+(define-test make-slurper-unknown-format-test
+             :parent nil
+             "MAKE-SLURPER signals an error for an unknown output format."
+             (let ((slurper (make-slurper
+                              (slurper-options (script-path "subproc")
+                                               "yaml"))))
+               (handler-case
+                   (progn
+                     (funcall slurper "thisdoesntmatter")
+                     (fail "Expected an error for unknown output format"))
+                 (error () nil))))
