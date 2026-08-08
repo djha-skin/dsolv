@@ -19,7 +19,8 @@ folder.
    needed. Try to make sure you're not guessing at features.
 
 3. Write a bunch of beads using the beads MCP server to capture what the user
-   said.
+   said. Upon first start up, remember to check what beads are open and resume
+   them if appropriate.
 
 4. Pick up each bead and work it in turn. As you work each bead, heavily employ
    TDD. Check your work often by spinning up subagents to audit both your work,
