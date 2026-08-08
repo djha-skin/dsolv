@@ -16,14 +16,14 @@
 *.fasl.gz
 .DS_Store
 
-# Built binary
+# Built binary and test files
 /dsolv
 /build-dsolv.lisp
 dsolv
 com.djhaskin.dsolv
 *.bak
-index.dsrepo
-out.dscard
+*.dsrepo
+*.dscard
 
 # Generated test data
 test/resources/data/

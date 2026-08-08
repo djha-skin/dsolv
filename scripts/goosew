@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/sh
 #
 # goosew — Launch goose with the cl-mcp extension loaded.
 #
@@ -11,59 +11,35 @@
 #
 
 set -euo pipefail
+export POSIXLY_CORRECT=1
 
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 project_root="$(cd "$script_dir/.." && pwd)"
-mcp_config="$project_root/.agents/mcp.json"
 export GOOSE_MOIM_MESSAGE_FILE=$project_root/.agents/top-of-mind.md
 
-if [ ! -f "$mcp_config" ]; then
-  echo "Error: $mcp_config not found." >&2
-  echo "Run this script from within the dsolv project tree." >&2
-  exit 1
-fi
+goose_cmd="goose session"
 
-# Extract all streamable HTTP URLs from .pi/mcp.json
-# The file format is:
-#   { "mcpServers": { "<name>": { "url": "...", "lifecycle": "..." }, ... } }
-#
-# We use jq if available, otherwise fall back to a grep/sed approach.
-if command -v jq &>/dev/null; then
-  mapfile -t EXT_URLS < <(
-    jq -r '.mcpServers // {} | to_entries[] | select(.value.url) | .value.url' "$mcp_config"
-  )
-else
-  # Crude fallback — extract url values from the JSON
-  EXT_URLS=()
-  while IFS= read -r line; do
-    url=$(echo "$line" | sed -n 's/.*"url"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p')
-    if [ -n "$url" ]; then
-      EXT_URLS+=("$url")
-    fi
-  done < <(grep -o '"url"[[:space:]]*:[[:space:]]*"[^"]*"' "$mcp_config")
-fi
-
-if [ ${#EXT_URLS[@]} -eq 0 ]; then
-  echo "Error: No streamable HTTP extension URLs found in $mcp_config." >&2
-  exit 1
-fi
-
-# Build the goose command with all extension URLs
-goose_cmd=(goose session)
-
-for url in "${EXT_URLS[@]}"; do
-  goose_cmd+=(--with-streamable-http-extension "$url")
+for cmd_extension in \
+    $(cat .agents/mcp.json \
+    | jq -r '.mcpServers |
+        keys[] as $k |
+        .[$k] |
+        select(has("command")) |
+        "goose://extension?id=\($k | @uri)&name=\($k | @uri)\(if .description then "&description=\(.description | @uri)" else "" end)&cmd=\(.command | @uri)\(if .args then "&arg=\(.args | map(@uri) | join("&arg="))" else "" end)"')
+do
+    goose_cmd="${goose_cmd} --with-linked-extension ${cmd_extension}"
 done
 
-# Append any user-provided arguments
-if [ $# -gt 0 ]; then
-  goose_cmd+=("$@")
-fi
 
-echo "🚀 goosew — launching goose with cl-mcp extension(s):" >&2
-for url in "${EXT_URLS[@]}"; do
-  echo "   → $url" >&2
+for http_extension in \
+    $(cat .agents/mcp.json \
+    | jq -r '.mcpServers |
+        keys[] as $k |
+        .[$k] |
+        select(has("url")) |
+        "goose://extension?type=streamable_http&id=\($k | @uri)&name=\($k | @uri)\(if .description then "&description=\(.description | @uri)" else "" end)&url=\(.url | @uri)"')
+do
+    goose_cmd="${goose_cmd} --with-linked-extension ${http_extension}"
 done
-echo >&2
 
-exec "${goose_cmd[@]}"
+${goose_cmd} "${@}"
