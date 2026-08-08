@@ -1,0 +1,26 @@
+#!/bin/sh
+set -eux
+export POSIXLY_CORRECT=1
+
+
+root_path=${PWD}
+test_home=test/resources/data/test-json-config
+
+
+rm -rf "${test_home}"
+mkdir -p "${test_home}"
+cd "${test_home}"
+
+
+cat > "dsolv.json" << JSON
+{
+    "id": "a\\\\b",
+    "version": "1.0.0",
+    "location": "https://example.com/repo/a-1.0.0.zip",
+    "requirements": ["c", "d"]
+}
+JSON
+
+runthis="${root_path}/dsolv"
+${runthis} \
+    -j "dsolv.json" display-config

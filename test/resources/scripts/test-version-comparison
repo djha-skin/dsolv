@@ -1,0 +1,74 @@
+#!/bin/sh
+set -eux
+
+export POSIXLY_CORRECT=1
+
+
+root_path=${PWD}
+test_home=test/resources/data/test-version-comparison
+
+
+rm -rf "${test_home}"
+mkdir -p "${test_home}"
+cd "${test_home}"
+
+runthis="${root_path}/dsolv"
+
+# First, generate *most* of the needed cards for the tests to pass.
+${runthis} \
+     generate-card \
+     -i "a" \
+     -v "1.0.0" \
+     -l "https://example.com/repo/a-1.0.0.zip" \
+     -C $PWD/a-1.0.0.zip.dscard
+
+${runthis} \
+     generate-card \
+     -i "a" \
+     -v "1.0.0-1" \
+     -l "https://example.com/repo/a-1.0.0-1.zip" \
+     -C $PWD/a-1.0.0-1.zip.dscard
+
+${runthis} \
+    generate-repo-index \
+    -d $PWD \
+    -I $PWD/index.dsrepo
+
+output=$(${runthis} \
+    resolve-locations \
+    -R ${PWD}/index.dsrepo \
+    -V maven \
+    --requirement "a>1.0.0")
+
+printf '%s\n' "${output}"
+
+echo "${output}" | grep -qE '==1\.0\.0-1 @'
+
+output=$(${runthis} \
+    resolve-locations \
+    -R ${PWD}/index.dsrepo \
+    -V maven \
+    --requirement "a<1.0.0-1")
+
+printf '%s\n' "${output}"
+
+echo "${output}" | grep -qE '==1\.0\.0 @'
+
+output=$(${runthis} \
+    resolve-locations \
+    -R ${PWD}/index.dsrepo \
+    -V semver \
+    --requirement "a<1.0.0")
+
+printf '%s\n' "${output}"
+
+echo "${output}" | grep -qE '==1\.0\.0-1 @'
+
+output=$(${runthis} \
+    resolve-locations \
+    -R ${PWD}/index.dsrepo \
+    --requirement "a>1.0.0-1")
+
+printf '%s\n' "${output}"
+
+echo "${output}" | grep -qE '==1\.0\.0 @'

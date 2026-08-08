@@ -1,0 +1,88 @@
+#!/bin/sh
+set -eux
+
+export POSIXLY_CORRECT=1
+
+
+root_path=${PWD}
+test_home=test/resources/data/test-search-strat
+
+
+rm -rf "${test_home}"
+mkdir -p "${test_home}"
+cd "${test_home}"
+
+runthis="${root_path}/dsolv"
+# First, generate *most* of the needed cards for the tests to pass.
+
+${runthis} \
+     generate-card \
+     -i "a" \
+     -v "1.0.0" \
+     -l "https://example.com/repo/a-1.0.0.zip" \
+     -r "b" \
+     -r "c|d" \
+     -C $PWD/a-1.0.0.zip.dscard
+
+${runthis} \
+     generate-card \
+     -i "b" \
+     -v "1.0.0" \
+     -l "https://example.com/repo/b-1.0.0.zip" \
+     -r "d|c" \
+     -C $PWD/b-1.0.0.zip.dscard
+
+${runthis} \
+     generate-card \
+     -i "c" \
+     -v "1.0.0" \
+     -l "https://example.com/repo/c-1.0.0.zip" \
+     -C $PWD/c-1.0.0.zip.dscard
+
+${runthis} \
+     generate-card \
+     -i "d" \
+     -v "1.0.0" \
+     -l "https://example.com/repo/d-1.0.0.zip" \
+     -C $PWD/d-1.0.0.zip.dscard
+
+${runthis} \
+    generate-repo-index \
+    -d $PWD \
+    -I $PWD/index.dsrepo
+
+# should fail
+if ${runthis} \
+    resolve-locations \
+    --search-strat deapth-first \
+    -R ${PWD}/index.dsrepo \
+    --requirement a
+then
+    exit 1
+fi
+
+${runthis} \
+    resolve-locations \
+    --search-strat depth-first \
+    -R ${PWD}/index.dsrepo \
+    --requirement a
+
+output1=$(${runthis} \
+    resolve-locations \
+    -R ${PWD}/index.dsrepo \
+    --requirement a)
+
+printf '%s\n' "${output1}"
+
+output2=$(${runthis} \
+    resolve-locations \
+    --search-strat breadth-first \
+    -R ${PWD}/index.dsrepo \
+    --requirement a)
+
+printf '%s\n' "${output2}"
+
+if [ "${output1}" != "${output2}" ]
+then
+    exit 1
+fi

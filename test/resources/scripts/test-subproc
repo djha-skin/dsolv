@@ -1,0 +1,63 @@
+#!/bin/sh
+set -ex
+
+root_path=${PWD}
+test_home=test/resources/data/test-subproc
+
+
+runthis="${root_path}/dsolv"
+
+set +x
+echo "Testing required argument..."
+set -x
+
+if ${runthis} resolve-locations -r quiles -R farforshire -t subproc
+then
+    exit 1
+fi
+
+set +x
+echo "Testing argument validation..."
+set -x
+
+if ${runthis} resolve-locations -r quiles -x '/usr/bin/fightme' -R farforshire
+then
+    exit 1
+fi
+
+set +x
+echo "Basic JSON test..."
+set -x
+${runthis} \
+     resolve-locations \
+     -x "test/resources/scripts/subproc" \
+     -t subproc \
+     -r "a>=2.0.0" \
+     -R "thisdoesntmatter"
+
+
+set +x
+echo "Basic NRDL test..."
+set -x
+${runthis} \
+     resolve-locations \
+     -t subproc \
+     -r "a>=2.0.0" \
+     -x "test/resources/scripts/subproc-nrdl" \
+     -u "nrdl" \
+     -R "thisdoesntmatter"
+
+set +x
+echo "Basic bad-exit test..."
+set -x
+
+if ${runthis} \
+     resolve-locations \
+     -t subproc \
+     -r "a>=2.0.0" \
+     -x "test/resources/scripts/bad-subproc" \
+     -u "nrdl" \
+     -R "thisdoesntmatter"
+then
+    exit 1
+fi

@@ -1,0 +1,10 @@
+#!/bin/sh
+# Run every dsolv POSIX shell integration test from the project root.
+set -eu
+
+root_path=${PWD}
+for script in test/resources/scripts/test-*; do
+    if [ "${script}" != "test/resources/scripts/test-all" ]; then
+        "${root_path}/${script}"
+    fi
+done

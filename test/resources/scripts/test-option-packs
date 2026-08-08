@@ -1,0 +1,31 @@
+#!/bin/sh
+
+set -ex
+
+root_path=${PWD}
+test_home=test/resources/data/test-option-packs
+
+rm -rf "${test_home}"
+mkdir -p "${test_home}"
+
+
+cat > ${test_home}/test-option-packs.nrdl <<NRDL
+{
+    :option-packs ["firstfound-version-mode"]
+}
+NRDL
+
+runthis="${root_path}/dsolv"
+
+${runthis} \
+    -c ${test_home}/test-option-packs.nrdl \
+    display-config | grep -E ':conflict-strat "prioritized"'
+
+${runthis} \
+     -k "multi-version-mode" \
+    display-config | grep -E ':conflict-strat "inclusive"'
+
+${runthis} \
+     -c ${test_home}/test-option-packs.nrdl \
+     -k "multi-version-mode" \
+    display-config | grep -E ':conflict-strat "inclusive"'

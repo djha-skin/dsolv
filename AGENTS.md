@@ -58,6 +58,14 @@ Examples:
 operation is not a generalized mapping transform. Use `gmap` for mapping
 values, mapping sequences, and converting collection results.
 
+### Port naming conventions
+
+When porting Clojure/degasolv artifacts to Common Lisp/dsolv:
+
+- Replace the **EDN** format name with **NRDL** (for example, `subproc-edn`
+  becomes `subproc-nrdl`).
+- Replace the `DEGASOLV_` environment-variable prefix with `DSOLV_`.
+
 ### Other rules
 
 - Use `defstruct` for data records.

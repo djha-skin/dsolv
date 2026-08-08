@@ -86,7 +86,7 @@ if ! \
         --enable-error-format \
         --output-format nrdl \
         -R ${PWD}/index.dsrepo \
-        --requirement "z<=1.0.0" | grep -q -E ':problems|problems'
+        --requirement "z<=1.0.0" | grep -q -E ':problems'
 then
     exit 1
 fi

@@ -1,0 +1,50 @@
+#!/bin/sh
+set -eux
+
+export POSIXLY_CORRECT=1
+
+
+root_path=${PWD}
+test_home=test/resources/data/test-index-sort-order
+
+
+rm -rf "${test_home}"
+mkdir -p "${test_home}"
+cd "${test_home}"
+
+# First, generate the needed cards for resolution.
+runthis="${root_path}/dsolv"
+
+${runthis} \
+     generate-card \
+     -i "a" \
+     -v "1.0.0" \
+     -l "https://example.com/repo/a-1.0.0.zip" \
+     -C $PWD/a-1.0.0.zip.dscard
+
+${runthis} \
+     generate-card \
+     -i "a" \
+     -v "2.0.0" \
+     -l "https://example.com/repo/a-2.0.0.zip" \
+     -C $PWD/a-2.0.0.zip.dscard
+
+${runthis} generate-repo-index -O ascending -d $PWD -I $PWD/ascending.dsrepo
+
+${runthis} generate-repo-index --index-sort-order descending -d $PWD -I $PWD/descending.dsrepo
+
+if ${runthis} \
+    resolve-locations \
+    -R ${PWD}/descending.dsrepo \
+    --requirement "a" | grep -F -q '1.0.0'
+then
+    exit 1
+fi
+
+if ${runthis} \
+    resolve-locations \
+    -R ${PWD}/ascending.dsrepo \
+    --requirement "a" | grep -F -q '2.0.0'
+then
+    exit 1
+fi

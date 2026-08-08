@@ -1,0 +1,105 @@
+#!/bin/sh
+set -eux
+
+export POSIXLY_CORRECT=1
+
+
+root_path=${PWD}
+test_home=test/resources/data/test-query-output-format
+
+
+rm -rf "${test_home}"
+mkdir -p "${test_home}"
+cd "${test_home}"
+
+runthis="${root_path}/dsolv"
+# First, generate the needed cards for resolution.
+
+${runthis} \
+     generate-card \
+     -i "a" \
+     -v "1.0.0" \
+     -r "b" \
+     -l "https://example.com/repo/a-1.0.0.zip" \
+     -C $PWD/a-1.0.0.zip.dscard
+
+${runthis} \
+    generate-card \
+    -i "a" \
+    -v "1.0.1" \
+    -l "https://example.com/repo/a-1.0.1.zip" \
+    -C $PWD/a-1.0.1.zip.dscard
+
+${runthis} \
+     generate-repo-index \
+     -d $PWD \
+     -I $PWD/index.dsrepo
+
+${runthis} \
+    query-repo \
+    -R ${PWD}/index.dsrepo \
+    --output-format json \
+    --query "a"
+
+if \
+    ${runthis} \
+    query-repo \
+    -R ${PWD}/index.dsrepo \
+    --output-format json \
+    --query "a>2.0"
+then
+    exit 1
+fi
+
+if ! \
+    ${runthis} \
+    query-repo \
+    -R ${PWD}/index.dsrepo \
+    --enable-error-format \
+    --output-format json \
+    --query "a>2.0" | jq .packages >/dev/null 2>&1
+then
+    exit 1
+fi
+
+${runthis} \
+    query-repo \
+    -R ${PWD}/index.dsrepo \
+    --output-format nrdl \
+    --query "a"
+
+if \
+    ${runthis} \
+    query-repo \
+    -R ${PWD}/index.dsrepo \
+    --output-format nrdl \
+    --query "a>2.0"
+then
+    exit 1
+fi
+
+
+if ! \
+    ${runthis} \
+    query-repo \
+    -R ${PWD}/index.dsrepo \
+    --output-format nrdl \
+    --enable-error-format \
+    --query "a>2.0" | grep -q ':packages'
+then
+    exit 1
+fi
+
+${runthis} \
+    query-repo \
+    -R ${PWD}/index.dsrepo \
+    --query "a"
+
+if \
+${runthis} \
+    query-repo \
+    -R ${PWD}/index.dsrepo \
+    --query "a>2.0"
+then
+    exit 1
+fi

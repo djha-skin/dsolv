@@ -1,5 +1,5 @@
 #!/bin/sh
-set -eoux
+set -eux
 
 export POSIXLY_CORRECT=1
 
@@ -13,11 +13,11 @@ cd "${test_home}"
 runthis="${root_path}/dsolv"
 
 # First, generate the needed cards for resolution.
-DEGASOLV_ID="a" \
-    DEGASOLV_REQUIREMENTS="b" \
-    DEGASOLV_VERSION="1.0.0" \
-    DEGASOLV_LOCATION="https://example.com/repo/a-1.0.0.zip" \
-    DEGASOLV_CARD_FILE=$PWD/a-1.0.0.zip.dscard \
+DSOLV_ITEM_ID="a" \
+    DSOLV_LIST_REQUIREMENTS="b" \
+    DSOLV_ITEM_VERSION="1.0.0" \
+    DSOLV_ITEM_LOCATION="https://example.com/repo/a-1.0.0.zip" \
+    DSOLV_ITEM_CARD_FILE=$PWD/a-1.0.0.zip.dscard \
     ${runthis} \
          generate-card
 
@@ -34,9 +34,9 @@ cat > ./config.nrdl << NRDL_CONFIG
     :requirements ["c"]
 }
 NRDL_CONFIG
-    DEGASOLV_CONFIG_FILES="./config.nrdl" \
-    DEGASOLV_JSON_CONFIG_FILES="./config.json" \
-    DEGASOLV_CARD_FILE=$PWD/b-2.3.0.zip.dscard \
+    DSOLV_LIST_CONFIG_FILES="./config.nrdl" \
+    DSOLV_LIST_JSON_CONFIG_FILES="./config.json" \
+    DSOLV_ITEM_CARD_FILE=$PWD/b-2.3.0.zip.dscard \
     ${runthis} \
     generate-card
 

@@ -1,0 +1,85 @@
+#!/bin/sh
+export POSIXLY_CORRECT=1
+set -x
+root_path="${PWD}"
+test_home=test/resources/data/apt
+
+
+try_time() {
+    time "$@" || {
+        "$@"
+    }
+}
+
+runthis="${root_path}/dsolv"
+
+try_time ${runthis} \
+    query-repo \
+    --repository "binary-amd64 file://${PWD}/${test_home}/avail /" \
+    --package-system apt \
+    --query "libc6"
+
+try_time ${runthis} \
+    resolve-locations \
+    --resolve-strat "fast" \
+    --repository "binary-amd64 file://${PWD}/${test_home}/avail /" \
+    --package-system apt \
+    --requirement "libc6"
+
+try_time ${runthis} \
+    resolve-locations \
+    --repository "binary-amd64 file://${PWD}/${test_home}/avail /" \
+    --package-system apt \
+    --requirement "libc6"
+
+try_time ${runthis} \
+    resolve-locations \
+    --repository "binary-amd64 file://${PWD}/${test_home}/avail /" \
+    --package-system apt \
+    --requirement "bash"
+
+try_time ${runthis} \
+    resolve-locations \
+    --resolve-strat fast \
+    --disable-alternatives \
+    --repository "binary-i386 file://${PWD}/${test_home}/i386 /" \
+    --repository "binary-amd64 file://${PWD}/${test_home}/amd64 /" \
+    --repository "binary-amd64 file://${PWD}/${test_home}/avail /" \
+    --package-system apt \
+    --present-package "libasound2==1.1.1" \
+    --present-package "libpng12-0==1.2.13-4" \
+    --resolve-strat fast \
+    --requirement "firefox"
+
+try_time ${runthis} \
+    resolve-locations \
+    --repository "binary-i386 file://${PWD}/${test_home}/i386 /" \
+    --repository "binary-amd64 file://${PWD}/${test_home}/amd64 /" \
+    --repository "binary-amd64 file://${PWD}/${test_home}/avail /" \
+    --package-system apt \
+    --present-package "libasound2==1.0.27" \
+    --present-package "libpng12-0==1.2.13-4" \
+    --requirement "firefox"
+
+try_time ${runthis} \
+    resolve-locations \
+    --disable-alternatives \
+    --resolve-strat fast \
+    --repository "binary-i386 file://${PWD}/${test_home}/i386 /" \
+    --repository "binary-amd64 file://${PWD}/${test_home}/amd64 /" \
+    --repository "binary-amd64 file://${PWD}/${test_home}/avail /" \
+    --package-system apt \
+    --present-package "libasound2==1.1.1" \
+    --present-package "libpng12-0==1.2.13-4" \
+    --requirement "ubuntu-desktop"
+
+try_time ${runthis} \
+    resolve-locations \
+    --repository "binary-i386 file://${PWD}/${test_home}/i386 /" \
+    --repository "binary-amd64 file://${PWD}/${test_home}/amd64 /" \
+    --repository "binary-amd64 file://${PWD}/${test_home}/avail /" \
+    --package-system apt \
+    --present-package "libasound2==1.1.1" \
+    --present-package "libpng12-0==1.2.13-4" \
+    --requirement "ubuntu-desktop" \
+    --output-format "json"
