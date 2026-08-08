@@ -23,6 +23,10 @@ All notable changes to this skill will be documented here.
 - Style guide: added `ros fmt` recommendation for automated formatting.
 - Development Workflow: replaced cl-mcp with swanky for Lisp operations.
 - Style guide: replaced cl-mcp directive with swanky + lisp-check-parens.ros.
+- lisp-check-parens.ros: now prints per-line left/right paren counts and the
+  line number alongside the running paren depth; added `--from N` / `--to M`
+  options to limit output to a range of lines. Updated the Development Workflow
+  Paren checking section to document the new output format and options.
 
 ### Fixed
 

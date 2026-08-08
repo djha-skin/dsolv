@@ -111,5 +111,24 @@ Run the `lisp-check-parens.ros` script (see the
 ros .agents/skills/djha-skin-common-lisp/scripts/lisp-check-parens.ros src/*.lisp
 ```
 
-It prints, for each line, the running paren depth plus a snippet of the line,
-and flags any line where the depth goes negative (unbalanced close parens).
+For each line it prints: the **line number**, the **running paren depth**
+(level after processing that line), the number of **left and right parens on
+that line**, and a snippet of the line:
+
+```
+  252 paren level: 3 | left: 2 | right: 1 | (defun resolve-locations-fn (options)
+```
+
+`left` and `right` count only the parens on that line that are actual code
+(parens inside strings, line comments, and `#|...|#` block comments are
+ignored). The running `paren level` is cumulative across lines, so it goes
+negative on an unbalanced close and ends non-zero if the file is unbalanced
+(in which case the script exits with status 1 and prints a summary line
+naming the file). It exits 0 only when every file's final depth is zero.
+
+To inspect only a specific range of lines, pass `--from N` and/or `--to M`
+(1-indexed, inclusive):
+
+```sh
+ros .agents/skills/djha-skin-common-lisp/scripts/lisp-check-parens.ros --from 240 --to 260 src/main.lisp
+```
