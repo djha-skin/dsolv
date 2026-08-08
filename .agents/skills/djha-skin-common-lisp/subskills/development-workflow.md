@@ -37,12 +37,11 @@ folder.
 
 Bear in mind, we use the following tools:
 
-* **cl-mcp MCP server** — Use the `cl-mcp` MCP server for ALL Lisp operations:
+* **swanky** — Use the `swanky` CLI tool to interact with a swank server, and
+  thus the lisp REPL. Expect the user to have already set up that server and
+  have it running. Use swanky for ALL Lisp operations:
   loading systems, running tests, editing forms, checking parens, searching
-  code. Do NOT use one-off `sbcl` or `ros` commands — the MCP server manages
-  the Lisp image and provides structure-aware tools (`lisp-edit-form`,
-  `lisp-patch-form`, `lisp-read-file`, `repl-eval`, `run-tests`,
-  `lisp-check-parens`, `code-find`, `code-describe`, `code-find-references`).
+  code. Do NOT use one-off `sbcl` or `ros` commands.
 
 * **OCICL** for package management. Run `ocicl install` to install all systems
   listed in `ocicl.csv`. Systems are downloaded project-locally. Do NOT use
@@ -51,5 +50,66 @@ Bear in mind, we use the following tools:
 * Roswell. `ros init` to make roswell scripts, `ros build` to build executables.
   Dependencies are resolved via OCICL, not Qlot.
 
-* For testing, use `run-tests` from the cl-mcp server (which calls
-  `(asdf:test-system "com.djhaskin.<name-of-the-repository>")` internally).
+* For testing, run `(asdf:test-system "com.djhaskin.<name-of-the-repository>")`
+  using swanky.
+
+## Using swanky
+
+`swanky` is a one-shot CLI: it connects to the running swank server, evaluates
+a single form, prints the result, and exits. The user starts the swank server
+(e.g. from a `clrepl` prompt with `(swank:create-server :port 4005 :dont-close t)`).
+The default port is `4005`.
+
+Basic usage:
+
+```sh
+swanky '(+ 1 2)'                        # print result of a form
+echo '(* 6 7)' | swanky                 # read form from stdin
+swanky -e '(+ 1 2)' -H 10.0.0.1 -p 4005 # explicit host/port
+swanky -e '(format t "hi~%")' --show-output  # capture *standard-output* (goes to stderr)
+```
+
+### Gotchas (IMPORTANT — read before using)
+
+1. **Fully qualify ALL symbols in the form you send.** The swank server reads
+   the request in `SWANK-IO-PACKAGE`, which uses **no** packages (only `nil`,
+   `t`, `quote` are available). An unqualified symbol like `+` or `list` gets
+   interned as `SWANK-IO-PACKAGE::+` and will be *undefined*. Always write
+   `cl:+`, `cl:list`, `cl:format`, `cl:defun`, etc. Symbols with explicit
+   package prefixes (`cl:+`, `com.djhaskin.foo:bar`) resolve fine.
+
+2. **The form is evaluated in the buffer package you name** (`-P/--package`,
+   default `CL-USER`). Use `-P` to pick the right package so unqualified
+   symbols inside your form resolve where you expect.
+
+3. **Errors do not hang.** swanky wraps your form in a `handler-case` so
+   ordinary errors (division by zero, undefined function, etc.) come back as
+   an error message on stderr with a non-zero exit code — no debugger prompt.
+   If a form does enter the debugger anyway (rare: `break`, `invoke-debugger`),
+   swanky prints a warning and exits; tell the user to reset the swank server
+   if it gets wedged.
+
+4. **Values are printed with `prin1`-style escaping**, so a string result
+   comes back quoted: `"foo"`. Multi-value returns are printed as a list of
+   printed values from `eval-and-grab-output`.
+
+5. **Startup is fast (~5ms release build)** — safe to call swanky repeatedly
+   in loops and scripts, one invocation per form.
+
+6. **stdout vs stderr.** The evaluated form's result goes to stdout. Output
+   written with `(format t ...)` goes to stdout by default too, but with
+   `--show-output` it is redirected to stderr so the two don't mix. Use
+   `--show-output` when the form both prints and returns a value you need to
+   capture programmatically.
+
+### Paren checking
+
+Run the `lisp-check-parens.ros` script (see the
+[Style Guide](style-guide.md)) before committing Lisp sources:
+
+```sh
+ros .agents/skills/djha-skin-common-lisp/scripts/lisp-check-parens.ros src/*.lisp
+```
+
+It prints, for each line, the running paren depth plus a snippet of the line,
+and flags any line where the depth goes negative (unbalanced close parens).

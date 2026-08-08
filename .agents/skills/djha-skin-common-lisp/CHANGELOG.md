@@ -8,7 +8,7 @@ All notable changes to this skill will be documented here.
 
 - Initial skill definition: SKILL.md with directory of subskills.
 - New Project subskill: step-by-step project setup using qlot, ASDF, Roswell.
-- Development Workflow subskill: TDD cycle with beads, cl-mcp, and subagents.
+- Development Workflow subskill: TDD cycle with beads, swanky, and subagents.
 - Style Guide subskill: conventions for naming, formatting, comments, and
   parachute tests.
 - CLIFF Command Line Tool subskill: CLI setup with cliff.
@@ -21,9 +21,8 @@ All notable changes to this skill will be documented here.
 ### Changed
 
 - Style guide: added `ros fmt` recommendation for automated formatting.
-- Development Workflow: added cl-mcp MCP server directive — use it for ALL Lisp
-  operations instead of raw sbcl/ros commands.
-- Style guide: added cl-mcp directive for Lisp operations.
+- Development Workflow: replaced cl-mcp with swanky for Lisp operations.
+- Style guide: replaced cl-mcp directive with swanky + lisp-check-parens.ros.
 
 ### Fixed
 

@@ -64,12 +64,15 @@ Please note the following style guidelines:
   indentation automatically. Run `ros fmt` on all source files before
   committing.
 
-* Use `cl-mcp` MCP server for ALL Lisp operations — loading systems, running
-  tests, editing forms, checking parens, code search. Do NOT use one-off `sbcl`
-  or `ros` commands. The cl-mcp server manages the Lisp image and provides
-  structure-aware tools (`lisp-edit-form`, `lisp-patch-form`, `lisp-read-file`,
-  `repl-eval`, `run-tests`, `lisp-check-parens`, `code-find`, `code-describe`,
-  `code-find-references`).
+* Use `swanky` CLI for ALL Lisp operations — loading systems, running tests,
+  editing forms, checking parens, code search. Do NOT use one-off `sbcl` or
+  `ros` commands (except `ros build` for executables and `ros init` for
+  script scaffolding). The swanky tool connects to a running swank server
+  and evaluates one form per invocation.
+
+* Run `lisp-check-parens.ros` on Lisp source files before committing to catch
+  unbalanced parentheses. See the [Development Workflow](development-workflow.md)
+  tooling section for usage.
 
 * Use **OCICL** for package management, NOT Qlot or Quicklisp (`ql:quickload`).
   OCICL packages systems as OCI-compliant artifacts distributed via container

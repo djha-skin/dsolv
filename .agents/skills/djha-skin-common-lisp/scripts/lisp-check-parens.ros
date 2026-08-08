@@ -1,0 +1,67 @@
+#!/bin/sh
+#|-*- mode:lisp -*-|#
+#| lisp-check-parens - print running paren depth for each line of a Lisp file.
+exec ros -Q -- $0 "$@"
+|#
+(progn ;;init forms
+  (ros:ensure-asdf)
+  #+quicklisp(ql:quickload '() :silent t)
+  )
+
+(defpackage :ros.script.lisp-check-parens.3995215241
+  (:use :cl))
+(in-package :ros.script.lisp-check-parens.3995215241)
+
+(defun check-file (file)
+  "Print paren depth per line of FILE. Return the final depth."
+  (let ((depth 0)
+        (in-string nil)
+        (in-comment nil)
+        (in-block nil))
+    (with-open-file (in file :external-format :utf-8)
+      (loop for line = (read-line in nil)
+            while line
+            do (let ((display line))
+                 (loop for ch across line
+                       for prev = #\Null then ch
+                       do (cond
+                            (in-comment nil)
+                            (in-block
+                             (when (and (char= prev #\|)
+                                        (char= ch #\#))
+                               (setf in-block nil)))
+                            (in-string
+                             (when (char= ch #\")
+                               (setf in-string nil)))
+                            ((char= ch #\")
+                             (setf in-string t))
+                            ((and (char= prev #\#)
+                                  (char= ch #\|))
+                             (setf in-block t))
+                            ((char= ch #\;)
+                             (setf in-comment t))
+                            ((char= ch #\()
+                             (incf depth))
+                            ((char= ch #\))
+                             (decf depth))))
+                 (when (> (length display) 60)
+                   (setf display (concatenate 'string
+                                              (subseq display 0 57)
+                                              "...")))
+                 (format t "paren level: ~D | ~A~%" depth display))))
+    depth))
+
+(defun main (&rest argv)
+  (unless argv
+    (format *error-output*
+            "usage: lisp-check-parens.ros <file>...~%")
+    (return-from main 1))
+  (let ((bad nil))
+    (dolist (file argv)
+      (let ((d (check-file file)))
+        (unless (zerop d)
+          (format t "~A: unbalanced parens (final depth ~D)~%"
+                  file d)
+          (setf bad t))))
+    (if bad 1 0)))
+;;; vim: set ft=lisp lisp:
