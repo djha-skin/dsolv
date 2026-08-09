@@ -42,63 +42,63 @@
 ;;; ─── Tests: deb-to-degasolv-requirements ────────────────────────────────────
 
 (define-test deb-to-degasolv-requirements-test
-  :parent nil
-  "Test the deb-to-degasolv-requirements function that converts
+             :parent nil
+             "Test the deb-to-degasolv-requirements function that converts
    Debian-style dependency strings to degasolv requirement format."
-  (true (null (deb-to-degasolv-requirements nil)))
-  (true (null (deb-to-degasolv-requirements "")))
-  (let ((result (deb-to-degasolv-requirements "a (>>5.0), b (>= 4.0)")))
-    (true (listp result))
-    (is = 2 (length result))
-    (let ((first-alt (first result)))
-      (true (listp first-alt))
-      (is = 1 (length first-alt))
-      (let ((req (first first-alt)))
-        (is string= "a" (req-id req))
-        (true (listp (req-spec req)))
-        (is = 1 (length (req-spec req)))
-        (let ((disj (first (req-spec req))))
-          (is = 1 (length disj))
-          (let ((vp (first disj)))
-            (is eql :greater-than (vp-relation vp))
-            (is string= "5.0" (vp-version vp))))))
-    (let ((second-alt (second result)))
-      (true (listp second-alt))
-      (is = 1 (length second-alt))
-      (let ((req (first second-alt)))
-        (is string= "b" (req-id req))
-        (let ((spec (req-spec req)))
-          (true (listp spec))
-          (is = 1 (length spec))
-          (let ((disj (first spec)))
-            (is = 1 (length disj))
-            (let ((vp (first disj)))
-              (is eql :greater-equal (vp-relation vp))
-              (is string= "4.0" (vp-version vp))))))))
-  (let ((result (deb-to-degasolv-requirements "a|b (<< 1.2.3), c (= 1.0.0)")))
-    (true (listp result))
-    (is = 2 (length result))
-    (let ((first-alt (first result)))
-      (true (listp first-alt))
-      (is = 2 (length first-alt)))
-    (let ((second-alt (second result)))
-      (true (listp second-alt))
-      (is = 1 (length second-alt))
-      (is string= "c" (req-id (first second-alt)))))
-  (let ((result (deb-to-degasolv-requirements "a:any")))
-    (true (listp result))
-    (is = 1 (length result))
-    (let ((alt (first result)))
-      (is = 1 (length alt))
-      (is string= "a" (req-id (first alt))))))
+             (true (null (deb-to-degasolv-requirements nil)))
+             (true (null (deb-to-degasolv-requirements "")))
+             (let ((result (deb-to-degasolv-requirements "a (>>5.0), b (>= 4.0)")))
+               (true (listp result))
+               (is = 2 (length result))
+               (let ((first-alt (first result)))
+                 (true (listp first-alt))
+                 (is = 1 (length first-alt))
+                 (let ((req (first first-alt)))
+                   (is string= "a" (req-id req))
+                   (true (listp (req-spec req)))
+                   (is = 1 (length (req-spec req)))
+                   (let ((disj (first (req-spec req))))
+                     (is = 1 (length disj))
+                     (let ((vp (first disj)))
+                       (is eql :greater-than (vp-relation vp))
+                       (is string= "5.0" (vp-version vp))))))
+               (let ((second-alt (second result)))
+                 (true (listp second-alt))
+                 (is = 1 (length second-alt))
+                 (let ((req (first second-alt)))
+                   (is string= "b" (req-id req))
+                   (let ((spec (req-spec req)))
+                     (true (listp spec))
+                     (is = 1 (length spec))
+                     (let ((disj (first spec)))
+                       (is = 1 (length disj))
+                       (let ((vp (first disj)))
+                         (is eql :greater-equal (vp-relation vp))
+                         (is string= "4.0" (vp-version vp))))))))
+             (let ((result (deb-to-degasolv-requirements "a|b (<< 1.2.3), c (= 1.0.0)")))
+               (true (listp result))
+               (is = 2 (length result))
+               (let ((first-alt (first result)))
+                 (true (listp first-alt))
+                 (is = 2 (length first-alt)))
+               (let ((second-alt (second result)))
+                 (true (listp second-alt))
+                 (is = 1 (length second-alt))
+                 (is string= "c" (req-id (first second-alt)))))
+             (let ((result (deb-to-degasolv-requirements "a:any")))
+               (true (listp result))
+               (is = 1 (length result))
+               (let ((alt (first result)))
+                 (is = 1 (length alt))
+                 (is string= "a" (req-id (first alt))))))
 
 ;;; ─── Tests: apt-repo ────────────────────────────────────────────────────────
 
 (define-test test-apt-repo
-  :parent nil
-  "Test the apt-repo function that creates repository query functions
+             :parent nil
+             "Test the apt-repo function that creates repository query functions
    from APT repository data."
-  (let* ((apt-data "Package: foo:any
+             (let* ((apt-data "Package: foo:any
 Priority: optional
 Section: misc
 Installed-Size: 27
@@ -162,19 +162,19 @@ Description-md5: 1c71821ee46c31ca86e8242f7517c26e
 Bugs: https://bugs.launchpad.net/ubuntu/+filebug
 Origin: Ubuntu
 Supported: 9m")
-       (repo (apt-repo "http://us.archive.ubuntu.com/ubuntu/" apt-data)))
-    (let ((foo-result (funcall repo "foo")))
-      (true (not (f:empty? foo-result)))
-      (is string= "foo" (pi-id (f:first foo-result)))
-      (is string= "0.1.11-0ubuntu3" (pi-version (f:first foo-result))))
-    (let ((apm-result (funcall repo "a11y-profile-manager")))
-      (true (not (f:empty? apm-result)))
-      (is string= "a11y-profile-manager" (pi-id (f:first apm-result)))
-      (is string= "0.1.11-0ubuntu3" (pi-version (f:first apm-result))))
-    (let ((apmd-result (funcall repo "a11y-profile-manager-doc")))
-      (true (not (f:empty? apmd-result)))
-      (is string= "a11y-profile-manager-doc" (pi-id (f:first apmd-result)))
-      (is string= "0.1.11-0ubuntu3" (pi-version (f:first apmd-result))))))
+                    (repo (apt-repo "http://us.archive.ubuntu.com/ubuntu/" apt-data)))
+               (let ((foo-result (funcall repo "foo")))
+                 (true (not (f:empty? foo-result)))
+                 (is string= "foo" (pi-id (f:first foo-result)))
+                 (is string= "0.1.11-0ubuntu3" (pi-version (f:first foo-result))))
+               (let ((apm-result (funcall repo "a11y-profile-manager")))
+                 (true (not (f:empty? apm-result)))
+                 (is string= "a11y-profile-manager" (pi-id (f:first apm-result)))
+                 (is string= "0.1.11-0ubuntu3" (pi-version (f:first apm-result))))
+               (let ((apmd-result (funcall repo "a11y-profile-manager-doc")))
+                 (true (not (f:empty? apmd-result)))
+                 (is string= "a11y-profile-manager-doc" (pi-id (f:first apmd-result)))
+                 (is string= "0.1.11-0ubuntu3" (pi-version (f:first apmd-result))))))
 
 ;;; ─── Tests: compressed Packages.gz support ──────────────────────────────────
 
@@ -187,7 +187,7 @@ Supported: 9m")
 (defun fixture-octets (path)
   "Read PATH as an unsigned-byte octet vector."
   (with-open-file (stream path :direction :input
-                               :element-type '(unsigned-byte 8))
+                          :element-type '(unsigned-byte 8))
     (let ((octets (make-array (file-length stream)
                               :element-type '(unsigned-byte 8))))
       (read-sequence octets stream)
@@ -203,53 +203,73 @@ Supported: 9m")
       (princ-to-string condition))))
 
 (define-test slurp-apt-repo-gzip-test
-  :parent nil
-  "The public APT slurper must decompress Packages.gz before parsing it."
-  (let ((requested-url nil)
-        (fixture (gzip-fixture-path)))
-    (let* ((repositories
-             (slurp-apt-repo
-              "deb https://apt.example stable main"
-              :fetcher
-              (lambda (url &key force-binary)
-                (setf requested-url url)
-                (true force-binary)
-                (fixture-octets fixture))))
-           (packages (funcall (first repositories) "gzip-fixture"))
-           (package (first (fset:convert 'list packages))))
-      (is = 1 (length repositories))
-      (is string=
-          "https://apt.example/dists/stable/main/deb/Packages.gz"
-          requested-url)
-      (is string= "gzip-fixture" (pi-id package))
-      (is string= "1.2.3" (pi-version package))
-      (is string=
-          "https://apt.example/pool/fixtures/gzip-fixture_1.2.3_all.deb"
-          (pi-location package)))))
+             :parent nil
+             "The public APT slurper must decompress Packages.gz before parsing it."
+             (let ((requested-url nil)
+                   (fixture (gzip-fixture-path)))
+               (let* ((repositories
+                        (slurp-apt-repo
+                          "deb https://apt.example stable main"
+                          :fetcher
+                          (lambda (url &key force-binary)
+                            (setf requested-url url)
+                            (true force-binary)
+                            (fixture-octets fixture))))
+                      (packages (funcall (first repositories) "gzip-fixture"))
+                      (package (first (fset:convert 'list packages))))
+                 (is = 1 (length repositories))
+                 (is string=
+                     "https://apt.example/dists/stable/main/deb/Packages.gz"
+                     requested-url)
+                 (is string= "gzip-fixture" (pi-id package))
+                 (is string= "1.2.3" (pi-version package))
+                 (is string=
+                     "https://apt.example/pool/fixtures/gzip-fixture_1.2.3_all.deb"
+                     (pi-location package)))))
 
 (define-test slurp-apt-repo-reports-fetch-errors
-  :parent nil
-  "The APT slurper identifies an unavailable compressed index."
-  (let ((message
-          (slurp-error-message
-           (lambda (url &key force-binary)
-             (declare (ignore url force-binary))
-             (error "fixture unavailable")))))
-    (true (search "Could not read compressed APT index" message))
-    (true (search "https://apt.example/dists/stable/main/deb/Packages.gz"
-                  message))
-    (true (search "fixture unavailable" message))))
+             :parent nil
+             "The APT slurper identifies an unavailable compressed index."
+             (let ((message
+                     (slurp-error-message
+                       (lambda (url &key force-binary)
+                         (declare (ignore url force-binary))
+                         (error "fixture unavailable")))))
+               (true (search "Could not read compressed APT index" message))
+               (true (search "https://apt.example/dists/stable/main/deb/Packages.gz"
+                             message))
+               (true (search "fixture unavailable" message))))
 
 (define-test slurp-apt-repo-reports-malformed-gzip
-  :parent nil
-  "The APT slurper identifies a malformed compressed index."
-  (let ((message
-          (slurp-error-message
-           (lambda (url &key force-binary)
-             (declare (ignore url force-binary))
-             (make-array 3
-                         :element-type '(unsigned-byte 8)
-                         :initial-contents '(1 2 3))))))
-    (true (search "Could not read compressed APT index" message))
-    (true (search "https://apt.example/dists/stable/main/deb/Packages.gz"
-                  message))))
+             :parent nil
+             "The APT slurper identifies a malformed compressed index."
+             (let ((message
+                     (slurp-error-message
+                       (lambda (url &key force-binary)
+                         (declare (ignore url force-binary))
+                         (make-array 3
+                                     :element-type '(unsigned-byte 8)
+                                     :initial-contents '(1 2 3))))))
+               (true (search "Could not read compressed APT index" message))
+               (true (search "https://apt.example/dists/stable/main/deb/Packages.gz"
+                             message))))
+
+(define-test slurp-apt-repo-file-url-test
+             :parent nil
+             "The APT slurper reads compressed indexes from file:// URLs without
+   touching the network."
+             (let* ((fixture-dir
+                      (merge-pathnames #P"test/resources/apt/fixtures/"
+                                       (asdf:system-source-directory
+                                         "com.djhaskin.dsolv")))
+                    (repositories
+                      (slurp-apt-repo
+                        (format nil "deb file://~a /"
+                                (namestring (truename fixture-dir)))))
+                    (packages (funcall (first repositories) "gzip-fixture"))
+                    (package (first (fset:convert 'list packages))))
+               (is = 1 (length repositories))
+               (is string= "gzip-fixture" (pi-id package))
+               (is string= "1.2.3" (pi-version package))
+               (is string= "file://" (subseq (pi-location package) 0 7))
+               (true (search "gzip-fixture_1.2.3_all.deb" (pi-location package)))))

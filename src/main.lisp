@@ -56,6 +56,16 @@
 
 (in-package #:com.djhaskin.dsolv)
 
+(defparameter *already-present-location* "already present"
+  "Location string carried by packages that are already present.
+
+   Shared by the construction site (present-packages-map) and the JSON
+   emission sites so the present-package marker cannot drift. It also
+   disambiguates JSON serialization of an empty requirement list: in
+   Common Lisp the empty list is NIL, so a resolved package with no
+   dependencies (serialize as []) and a present package (serialize as
+   null) can only be told apart by this marker.")
+
 ;;; ─── NRDL struct serialization methods ──────────────────────────────────────
 
 (defmethod nrdl:emit-nrdl-struct (strm (val resolver:version-predicate)
@@ -233,111 +243,136 @@
         index-strat '("priority" "global")
         "Strategy must either be 'priority' or 'global'.")
 
-    ;; Check required arguments
-    (when (getf pkg-sys-entry :required-arguments)
-      (let ((req-args (getf pkg-sys-entry :required-arguments)))
-        (maphash (lambda (key val)
-                   (declare (ignore val))
-                   (unless (gethash key options)
-                     (return-from resolve-locations-fn
-                                  (exit-with :general-error
-                                             (format nil "Missing required argument: ~a" key)))))
-                 req-args)))
+      ;; Check required arguments
+      (when (getf pkg-sys-entry :required-arguments)
+        (let ((req-args (getf pkg-sys-entry :required-arguments)))
+          (maphash (lambda (key val)
+                     (declare (ignore val))
+                     (unless (gethash key options)
+                       (return-from resolve-locations-fn
+                                    (exit-with :general-error
+                                               (format nil "Missing required argument: ~a" key)))))
+                   req-args)))
 
-    ;; Check repositories requirement (if no query-constructor)
-    (unless (getf pkg-sys-entry :query-constructor)
-      (let ((repos (ht-get options :repositories)))
-        (unless (and repos (listp repos) (not (null repos)))
-          (return-from resolve-locations-fn
-                       (exit-with :general-error "Missing required argument: --set-repositories")))))
+      ;; Check repositories requirement (if no query-constructor)
+      (unless (getf pkg-sys-entry :query-constructor)
+        (let ((repos (ht-get options :repositories)))
+          (unless (and repos (listp repos) (not (null repos)))
+            (return-from resolve-locations-fn
+                         (exit-with :general-error "Missing required argument: --set-repositories")))))
 
-    ;; Parse requirements
-    (let* ((requirement-data
-             (loop for str-req in requirements
-                   collect (string-to-requirement str-req)))
-           (present-packages-map
-             (let ((map (f:empty-map)))
-               (loop for str-pkg in present-pkgs
-                     for split = (cl-ppcre:split "==" str-pkg)
-                     for id = (first split)
-                     for version = (second split)
-                     do (setf map (f:with map id
-                                          (cons (make-package-info
-                                                  :id id
-                                                  :version version
-                                                  :location "already present")
-                                                (f:lookup map id)))))
-               map))
-           (query
-             (if (getf pkg-sys-entry :query-constructor)
-                 (funcall (getf pkg-sys-entry :query-constructor) options)
-                 (let* ((genrepo
-                          (cond
-                            ((getf pkg-sys-entry :repo-constructor)
-                             (funcall (getf pkg-sys-entry :repo-constructor) options))
-                            ((getf pkg-sys-entry :genrepo)
-                             (getf pkg-sys-entry :genrepo))
-                            (t (error "No repo generator for ~a" package-system))))
-                        (repositories (ht-get options :repositories)))
-                   (aggregate-repositories
-                     index-strat
-                     repositories
-                     genrepo
-                     version-comparator))))
-           (result
-             (resolve-dependencies-deluxe
-               requirement-data
-               query
-               :present-packages present-packages-map
-               :strategy (intern (string-upcase resolve-strat) :keyword)
-               :conflict-strat (intern (string-upcase conflict-strat) :keyword)
-               :list-strat (intern (string-upcase list-strat) :keyword)
-               :search-strat (intern (string-upcase search-strat) :keyword)
-               :compare version-comparator
-               :allow-alternatives alternatives))
-           (result-status (getf result :result)))
+      ;; Parse requirements
+      (let* ((requirement-data
+               (loop for str-req in requirements
+                     collect (string-to-requirement str-req)))
+             (present-packages-map
+               (let ((map (f:empty-map)))
+                 (loop for str-pkg in present-pkgs
+                       for split = (cl-ppcre:split "==" str-pkg)
+                       for id = (first split)
+                       for version = (second split)
+                       do (setf map (f:with map id
+                                            (cons (make-package-info
+                                                    :id id
+                                                    :version version
+                                                    :location *already-present-location*)
+                                                  (f:lookup map id)))))
+                 map))
+             (query
+               (if (getf pkg-sys-entry :query-constructor)
+                   (funcall (getf pkg-sys-entry :query-constructor) options)
+                   (let* ((genrepo
+                            (cond
+                              ((getf pkg-sys-entry :repo-constructor)
+                               (funcall (getf pkg-sys-entry :repo-constructor) options))
+                              ((getf pkg-sys-entry :genrepo)
+                               (getf pkg-sys-entry :genrepo))
+                              (t (error "No repo generator for ~a" package-system))))
+                          (repositories (ht-get options :repositories)))
+                     (aggregate-repositories
+                       index-strat
+                       repositories
+                       genrepo
+                       version-comparator))))
+             (result
+               (resolve-dependencies-deluxe
+                 requirement-data
+                 query
+                 :present-packages present-packages-map
+                 :strategy (intern (string-upcase resolve-strat) :keyword)
+                 :conflict-strat (intern (string-upcase conflict-strat) :keyword)
+                 :list-strat (intern (string-upcase list-strat) :keyword)
+                 :search-strat (intern (string-upcase search-strat) :keyword)
+                 :compare version-comparator
+                 :allow-alternatives alternatives))
+             (result-status (getf result :result)))
 
-      (if (eql result-status :successful)
-          (let ((packages (getf result :packages)))
-            (ecase (intern (string-upcase output-format) :keyword)
-              (:json
-               (format t "{\"result\":\"successful\",\"packages\":[~%")
-               (loop for pkg in packages
-                     do (format t "  {\"id\":\"~a\",\"version\":\"~a\",\"location\":\"~a\"}~%"
-                                (pi-id pkg) (pi-version pkg) (pi-location pkg)))
-               (format t "]}~%"))
-              (:plain
-               (loop for pkg in packages
-                     do (format t "~a~%" (explain-package pkg))))
-              (:nrdl
-               (let ((ht (make-hash-table :test 'equal)))
-                 (setf (gethash :result ht) :successful)
-                 (setf (gethash :packages ht) (fset:convert 'list packages))
-                 (nrdl:generate-to t ht :pretty-indent 2))
-               (terpri)))
-            (alexandria:alist-hash-table
-              `((:status . :successful)
-                (:cliff-suppress-output . t))))
-          (let ((problems (getf result :problems)))
-            (if error-format
-                (out-exit-with :system-error
-                               (ecase (intern (string-upcase output-format) :keyword)
-                                 (:json
-                                  (let ((ht (make-hash-table :test 'equal)))
-                                    (setf (gethash :result ht) :unsuccessful)
-                                    (setf (gethash :problems ht) (problems-to-data problems))
-                                    (with-output-to-string (s)
-                                      (nrdl:generate-to s ht :json-mode t))))
-                                 (:nrdl
-                                  (let ((ht (make-hash-table :test 'equal)))
-                                    (setf (gethash :result ht) :unsuccessful)
-                                    (setf (gethash :problems ht) (problems-to-data problems))
-                                    (with-output-to-string (s)
-                                      (nrdl:generate-to s ht :pretty-indent 2))))
-                                 (:plain
-                                  (format nil "~{~a~%~}" (mapcar #'explain-problem problems)))))
-                (exit-with :system-error
-                           (format nil "~{~a~%~}" (mapcar #'explain-problem problems))))))))))
+        (if (eql result-status :successful)
+            (let ((packages (getf result :packages))
+                  (install-graph (getf result :install-graph)))
+              (ecase (intern (string-upcase output-format) :keyword)
+                (:json
+                 (format t "{\"result\":\"successful\",\"packages\":[")
+                 (loop for pkg in packages
+                       for first = t then nil
+                       do (unless first (format t ","))                          (format t "{\"id\":\"~a\",\"version\":\"~a\",\"location\":\"~a\",\"requirements\":~a}"
+                                                                                         (pi-id pkg) (pi-version pkg) (pi-location pkg)                                  (requirements-json
+                                    (pi-requirements pkg)
+                                    (string= (pi-location pkg)
+                                             *already-present-location*))))
+                 (format t "],\"install-graph\":{")
+                 (let ((first t))
+                   (fset:do-map (handle entry install-graph)
+                                (unless first (format t ","))
+                                (setf first nil)
+                                (format t "\"~a\":{\"version\":\"~a\",\"location\":\"~a\",\"requirements\":~a,\"name\":\"~a\",\"metadata\":{},\"dependees\":["
+                                        handle (getf entry :version)
+                                        (getf entry :location)
+                                        (requirements-json
+                                          (getf entry :requirements)
+                                          (string= (getf entry :location)
+                                                   *already-present-location*))
+                                        (getf entry :name))
+                                (loop for dep in (getf entry :dependees)
+                                      for first-dep = t then nil
+                                      do (unless first-dep (format t ","))
+                                      (format t "\"~a\"" dep))
+                                (format t "]}")))
+                 (format t "}}~%"))
+                (:plain
+                 (loop for pkg in packages
+                       do (format t "~a~%" (explain-package pkg))))
+                (:nrdl
+                 (let ((ht (make-hash-table :test 'equal)))
+                   (setf (gethash :result ht) :successful)
+                   (setf (gethash :packages ht) (fset:convert 'list packages))
+                   (setf (gethash :install-graph ht)
+                         (install-graph-to-data install-graph))
+                   (nrdl:generate-to t ht :pretty-indent 2))
+                 (terpri)))
+              (alexandria:alist-hash-table
+                `((:status . :successful)
+                  (:cliff-suppress-output . t))))
+            (let ((problems (getf result :problems)))
+              (if error-format
+                  (out-exit-with :system-error
+                                 (ecase (intern (string-upcase output-format) :keyword)
+                                   (:json
+                                    (let ((ht (make-hash-table :test 'equal)))
+                                      (setf (gethash :result ht) :unsuccessful)
+                                      (setf (gethash :problems ht) (problems-to-data problems))
+                                      (with-output-to-string (s)
+                                        (nrdl:generate-to s ht :json-mode t))))
+                                   (:nrdl
+                                    (let ((ht (make-hash-table :test 'equal)))
+                                      (setf (gethash :result ht) :unsuccessful)
+                                      (setf (gethash :problems ht) (problems-to-data problems))
+                                      (with-output-to-string (s)
+                                        (nrdl:generate-to s ht :pretty-indent 2))))
+                                   (:plain
+                                    (format nil "~{~a~%~}" (mapcar #'explain-problem problems)))))
+                  (exit-with :system-error
+                             (format nil "~{~a~%~}" (mapcar #'explain-problem problems))))))))))
 
 ;;; ─── Subcommand: generate-repo-index ────────────────────────────────────────
 
@@ -390,6 +425,56 @@
                                       (cons :version (vp-version vp)))
                                 :test 'equal))))
 
+(defun spec-json (spec)
+  "Serialize a SPEC (list of disjunctions of version predicates) as a
+   JSON string. NIL serializes as JSON null, matching legacy degasolv."
+  (if (null spec)
+      "null"
+      (with-output-to-string (s)
+        (format s "[")
+        (loop for disj in spec
+              for first-disj = t then nil
+              do (unless first-disj (format s ","))
+              (format s "[")
+              (loop for vp in disj
+                    for first-vp = t then nil
+                    do (unless first-vp (format s ","))
+                    (format s "{\"relation\":\"~a\",\"version\":\"~a\"}"
+                            (string-downcase (symbol-name (vp-relation vp)))
+                            (vp-version vp)))
+              (format s "]"))
+        (format s "]"))))
+
+(defun requirements-json (requirements &optional (present-p nil))
+  "Serialize REQUIREMENTS (a list of clauses of requirement structs) as
+   a JSON string.
+
+   In Common Lisp an empty requirement list is NIL, which is also the
+   value used for present packages, so PRESENT-P (true when the package
+   is already present, marked by the \"already present\" location)
+   disambiguates the two: present packages serialize as JSON null,
+   resolved packages with no requirements serialize as [], matching
+   legacy degasolv output."
+  (cond
+    ((null requirements)
+     (if present-p "null" "[]"))
+    (t
+     (with-output-to-string (s)
+       (format s "[")
+       (loop for clause in requirements
+             for first-clause = t then nil
+             do (unless first-clause (format s ","))
+             (format s "[")
+             (loop for req in clause
+                   for first-req = t then nil
+                   do (unless first-req (format s ","))
+                   (format s "{\"status\":\"~a\",\"id\":\"~a\",\"spec\":~a}"
+                           (string-downcase (symbol-name (req-status req)))
+                           (req-id req)
+                           (spec-json (req-spec req))))
+             (format s "]"))
+       (format s "]")))))
+
 ;;; ─── Subcommand: generate-card ──────────────────────────────────────────────
 
 (defun generate-card-fn (options)
@@ -431,6 +516,30 @@
     (alexandria:alist-hash-table
       `((:status . :successful)
         (:cliff-suppress-output . t)))))
+
+;;; ─── NRDL serialization helpers ────────────────────────────────────────────
+
+(defun install-graph-to-data (install-graph)
+  "Convert an install-graph map to hash tables for NRDL serialization.
+
+   INSTALL-GRAPH is an fset map of handle to plist entries with
+   :NAME, :VERSION, :LOCATION, :REQUIREMENTS, and :DEPENDEES keys.
+   The plists become hash tables so NRDL can emit them as objects."
+  (let ((result (make-hash-table :test 'equal)))
+    (fset:do-map (handle entry install-graph)
+                 (let ((ht (make-hash-table :test 'equal)))
+                   (setf (gethash :version ht) (getf entry :version))
+                   (setf (gethash :location ht) (getf entry :location))
+                   (when (getf entry :requirements)
+                     (setf (gethash :requirements ht)
+                           (loop for clause in (getf entry :requirements)
+                                 collect (loop for req in clause
+                                               collect (requirement-to-data req)))))
+                   (setf (gethash :name ht) (getf entry :name))
+                   (setf (gethash :metadata ht) (make-hash-table :test 'equal))
+                   (setf (gethash :dependees ht) (getf entry :dependees))
+                   (setf (gethash handle result) ht)))
+    result))
 
 ;;; ─── Subcommand: query-repo ─────────────────────────────────────────────────
 
@@ -489,10 +598,13 @@
           (progn
             (ecase (intern (string-upcase output-format) :keyword)
               (:json
-               (format t "{\"packages\":[~%")
-               (fset:do-seq (pkg results)
-                            (format t "  {\"id\":\"~a\",\"version\":\"~a\",\"location\":\"~a\"}~%"
-                                    (pi-id pkg) (pi-version pkg) (pi-location pkg)))
+               (format t "{\"packages\":[")
+               (let ((first t))
+                 (fset:do-seq (pkg results)
+                              (unless first (format t ","))
+                              (setf first nil)
+                              (format t "{\"id\":\"~a\",\"version\":\"~a\",\"location\":\"~a\"}"
+                                      (pi-id pkg) (pi-version pkg) (pi-location pkg))))
                (format t "]}~%"))
               (:plain
                (fset:do-seq (pkg results)
@@ -506,7 +618,7 @@
               `((:status . :successful)
                 (:cliff-suppress-output . t))))))))
 
-;;; ─── Subcommand: display-config ─────────────────────────────────────────────;;; ─── Subcommand: display-config ─────────────────────────────────────────────
+;;; ─── Subcommand: display-config ─────────────────────────────────────────────
 
 (defun display-config-fn (options)
   "Display the effective configuration."
@@ -624,41 +736,77 @@
       (let ((new-key (intern (substitute #\- #\_ (string k)) :keyword)))
         (setf (gethash new-key options) (gethash k options))
         (remhash k options))))
+  options)(defun config-key-set-by-cli-or-env-p (options key)
+            "Return true if KEY holds a non-default value in OPTIONS.
+
+   CLIFF merges defaults, config files, environment variables, and
+   command-line arguments before calling the setup function, so a key
+   whose value differs from its default must have been set by the
+   environment, the command line, or a standard-location config file.
+   setup-function snapshots these keys before merging any user
+   -c/--config-file or -j/--json-config values, so that user config
+   files may override one another (later files win) without ever
+   overriding values already decided by CLI/env."
+            (let ((val (gethash key options)))
+              (multiple-value-bind (dval present)
+                                   (gethash key *subcommand-option-defaults*)
+                (and val (not (and present (equal val dval)))))))
+
+(defun merge-config-into-options (options parsed protected-keys)
+  "Merge PARSED config hash table into OPTIONS without overriding
+   the PROTECTED-KEYS already set by the environment or the command
+   line. Among config files, later files override earlier ones."
+  (maphash (lambda (k v)
+             (unless (member k protected-keys)
+               (setf (gethash k options) v)))
+           parsed)
   options)
 
 (defun setup-function (options)
   "Setup function for CLIFF's execute-program.
-   Loads config files from the :config-files list and merges them into options."
+   Loads config files from the :config-files list and merges them into
+   options, then expands any option packs. Environment and command-line
+   values take precedence over config-file values; among config files,
+   later files override earlier ones."
   ;; Normalize keys (underscore -> hyphen for env var compatibility)
   (normalize-keys options)
-  ;; Load NRDL config files
-  (let ((config-files (gethash :config-files options)))
-    (when config-files
-      (dolist (file config-files)
-        (handler-case
-            (let* ((raw (data-slurp file))
-                   (parsed (parse-string raw)))
-              (when (hash-table-p parsed)
-                (maphash (lambda (k v)
-                           (setf (gethash k options) v))
-                         parsed)))
-          (error (e)
-            (format *error-output* "Warning: Could not load config file ~a: ~a~%" file e))))))
-  ;; Load JSON config files (string keys -> keywords)
-  (let ((json-config-files (gethash :json-config-files options)))
-    (when json-config-files
-      (dolist (file json-config-files)
-        (handler-case
-            (let* ((raw (data-slurp file))
-                   (parsed (parse-string raw)))
-              (when (hash-table-p parsed)
-                (let ((converted (string-keys-to-keywords parsed)))
-                  (maphash (lambda (k v)
-                             (setf (gethash k options) v))
-                           converted))))
-          (error (e)
-            (format *error-output* "Warning: Could not load JSON config file ~a: ~a~%" file e))))))
-  options)
+  ;; Snapshot the keys set by CLI/env (differing from defaults) BEFORE
+  ;; merging any config files, so that later config files may override
+  ;; earlier ones (matching degasolv's `reduce merge`) without ever
+  ;; overriding CLI/env values.
+  (let ((protected-keys
+          (loop for k being the hash-keys of options
+                when (config-key-set-by-cli-or-env-p options k)
+                collect k)))
+    ;; Load NRDL config files
+    (let ((config-files (gethash :config-files options)))
+      (when config-files
+        (dolist (file config-files)
+          (handler-case
+              (let* ((raw (data-slurp file))
+                     (parsed (parse-string raw)))
+                (when (hash-table-p parsed)
+                  (merge-config-into-options options parsed protected-keys)))
+            (error (e)
+              (format *error-output*
+                      "Warning: Could not load config file ~a: ~a~%" file e))))))
+    ;; Load JSON config files (string keys -> keywords)
+    (let ((json-config-files (gethash :json-config-files options)))
+      (when json-config-files
+        (dolist (file json-config-files)
+          (handler-case
+              (let* ((raw (data-slurp file))
+                     (parsed (parse-string raw)))
+                (when (hash-table-p parsed)
+                  (merge-config-into-options
+                    options
+                    (string-keys-to-keywords parsed)
+                    protected-keys)))
+            (error (e)
+              (format *error-output*
+                      "Warning: Could not load JSON config file ~a: ~a~%" file e)))))))
+  ;; Apply option packs to the effective configuration
+  (expand-option-packs options))
 
 (defun main (&rest argv)
   "Entry point for the dsolv CLI tool.

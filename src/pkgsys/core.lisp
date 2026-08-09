@@ -140,18 +140,23 @@
                 nil))))
 
 (defun fset-map-to-package-info (fset-map)
-  "Convert an fset map (from card data) to a PACKAGE-INFO struct."
+  "Convert an fset map (from card data) to a PACKAGE-INFO struct.
+
+   A package whose card or index entry has no requirements gets an
+   empty requirement list (which is NIL in Common Lisp) rather than a
+   distinct nil, matching the legacy degasolv PackageInfo default of
+   `[]`. Present packages, by contrast, are built directly with no
+   requirements and are told apart at JSON emission time by their
+   location marker."
   (let ((reqs (fset:lookup fset-map :requirements)))
     (resolver:make-package-info
       :id (fset:lookup fset-map :id)
       :version (fset:lookup fset-map :version)
       :location (fset:lookup fset-map :location)
       :requirements
-      (if reqs
-          (loop for clause in (fset:convert 'list reqs)
-                collect (loop for req-data in (fset:convert 'list clause)
-                              collect (fset-map-to-requirement req-data)))
-          nil))))
+      (loop for clause in (fset:convert 'list (or reqs (fset:empty-seq)))
+            collect (loop for req-data in (fset:convert 'list clause)
+                          collect (fset-map-to-requirement req-data))))))
 
 (defun slurp-degasolv-repo (url)
   "Read a degasolv repository from URL, returning a list of query functions.

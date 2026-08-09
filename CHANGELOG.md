@@ -2,10 +2,29 @@
 
 All notable changes to this project will be documented in this file.
 
-## [Unreleased]
+## [0.2.0] - 2026-08-09
 
 ### Added
 
+- Install-graph output fidelity: JSON and NRDL install-graph entries (and the
+  JSON packages list) now include each package's `requirements` and `metadata`
+  fields, matching legacy degasolv. Present packages serialize `requirements`
+  as JSON `null` while resolved packages with no dependencies serialize `[]`
+  (degasolv's Clojure distinguishes `nil` from `[]`; dsolv uses the
+  `"already present"` location to tell them apart, since the empty list is
+  `nil` in Common Lisp). The `test-install-graph` fixtures were regenerated
+  and verified equal to degasolv's expected output (modulo map iteration
+  order).
+- `scripts/build`: builds the executable with `dynamic-space-size=8192` and
+  `control-stack-size=64` baked into the dumped image (overridable via
+  `DYNAMIC_SPACE_SIZE`/`CONTROL_STACK_SIZE`). Replaces the ad-hoc `ros build`
+  invocations that previously lost the heap/stack settings.
+- No-regex APT parser: `slurp-apt-repo` now parses `Packages.gz` with simple
+  line-based operations — records cut at blank lines, key/value pairs split at
+  the first colon — instead of regular expressions. This fixes heap exhaustion
+  on the 19 MB Ubuntu index (regex-heavy parsing was why the original degasolv
+  took ~40 minutes and moved to the same string-based approach). Also adds
+  `file://` repository URL support so local index files work.
 - Implement the `subproc` package system slurper (`make-slurper` in
   `src/pkgsys/subproc.lisp`): runs an external executable, parses its JSON or
   NRDL output, and converts it into resolver query functions. Includes tests
@@ -15,6 +34,24 @@ All notable changes to this project will be documented in this file.
   `package-info` structs with requirements intact.
 
 ### Fixed
+
+- Fix config-file merge precedence in `setup-function`: user-specified
+  `-c`/`-j` config files now override one another (later files win, matching
+  degasolv's `reduce merge`) while CLI/env values still take precedence.
+  Previously a value set by an earlier config file appeared "CLI-set" and
+  blocked later config files from overriding it (test-env-vars).
+- Parsed packages with no requirements now carry an empty requirement list
+  (legacy degasolv `PackageInfo` defaults to `[]`), so JSON output can
+  distinguish present packages (`null`) from resolved packages without
+  dependencies (`[]`).
+- `test-meta` now uses `set -e` so a failed assertion fails the script
+  instead of being masked by the final command's exit status. `test-apt`
+  keeps the original's `set -x`-only semantics: its middle
+  `--disable-alternatives` invocations are expected to fail because
+  `update-manager-gnome` is absent from the fixture indexes (the original
+  degasolv behaves identically, and the script's exit status is the last
+  invocation's).
+- Fix `generate-repo-index` card decoding (dsolv-ixz): generated repository
 
 - Fix `generate-repo-index` card decoding (dsolv-ixz): generated repository
   indexes now store `package-info` structs instead of raw fset maps, so index

@@ -60,8 +60,17 @@ Please note the following style guidelines:
 * Only 80 characters per line, please, for any text-based file in the
   repository. Wrap intelligently if you must to follow this rule.
 
-* Use `ros fmt <file>` to format Lisp source files. It handles consistent
-  indentation automatically. Run `ros fmt` on all source files before
+* Use the skill's `fmt.ros` script (not Roswell's `ros fmt`) to format and
+  lint Lisp source files:
+
+  ```sh
+  ros .agents/skills/djha-skin-common-lisp/scripts/fmt.ros [--check] [files...]
+  ```
+
+  It handles consistent indentation automatically (via cl-indentify), strips
+  trailing whitespace, and lints line length, comment style, and file headers.
+  With no files it discovers `src/**/*.lisp` and `tests/**/*.lisp`. Pass
+  `--check` to lint without rewriting. Run it on all source files before
   committing.
 
 * Use `swanky` CLI for ALL Lisp operations — loading systems, running tests,

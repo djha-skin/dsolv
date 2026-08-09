@@ -69,22 +69,21 @@ When porting Clojure/degasolv artifacts to Common Lisp/dsolv:
 ### Other rules
 
 - Use `defstruct` for data records.
-- Use `cl-mcp` for Lisp interaction, loading, editing, testing, and builds.
+- Use `swanky` for Lisp interaction, loading, editing, testing, and builds.
 - Use CLIFF `data-slurp`/`base-slurp`; do not reimplement them.
 - Use Parachute for tests.
 
-## CL-MCP Inclusions
-
-@~/common-lisp/cl-mcp/prompts/repl-driven-development.md
-
-
 ## Build and Test
 
-Run Lisp through cl-mcp. Build the executable with:
+Run Lisp through swanky. Build the executable with:
 
 ```bash
-ros build com.djhaskin.dsolv.ros
+./scripts/build
 ```
+
+The build script bakes the large heap and control-stack sizes needed for
+big repository resolutions (e.g. test-apt's 19 MB APT index) into the
+binary; see `scripts/build` for override knobs.
 
 ## Session Completion
 

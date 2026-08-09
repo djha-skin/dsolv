@@ -19,13 +19,13 @@ runthis="${root_path}/dsolv"
 
 ${runthis} \
     -c ${test_home}/test-option-packs.nrdl \
-    display-config | grep -E ':conflict-strat "prioritized"'
+    display-config | grep -E ':CONFLICT-STRAT: "prioritized"'
 
 ${runthis} \
      -k "multi-version-mode" \
-    display-config | grep -E ':conflict-strat "inclusive"'
+    display-config | grep -E ':CONFLICT-STRAT: "inclusive"'
 
 ${runthis} \
      -c ${test_home}/test-option-packs.nrdl \
      -k "multi-version-mode" \
-    display-config | grep -E ':conflict-strat "inclusive"'
+    display-config | grep -E ':CONFLICT-STRAT: "inclusive"'

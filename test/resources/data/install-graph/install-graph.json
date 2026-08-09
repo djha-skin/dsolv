@@ -1,0 +1,33 @@
+{
+  "b": {
+    "name": "b",
+    "version": "2.3.0",
+    "location": "https://example.com/repo/b-2.3.0.zip",
+    "dependees": [
+      "c",
+      "d"
+    ]
+  },
+  "c": {
+    "name": "c",
+    "version": "3.5.0",
+    "location": "https://example.com/repo/c-3.5.0.zip",
+    "dependees": [
+      "e"
+    ]
+  },
+  "d": {
+    "name": "d",
+    "version": "0.8.0",
+    "location": "https://example.com/repo/d-0.8.0.zip",
+    "dependees": [
+      "e"
+    ]
+  },
+  "e": {
+    "name": "e",
+    "version": "1.8.0",
+    "location": "https://example.com/repo/e-1.8.0.zip",
+    "dependees": []
+  }
+}

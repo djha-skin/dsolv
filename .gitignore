@@ -19,11 +19,25 @@
 # Built binary and test files
 /dsolv
 /build-dsolv.lisp
+
+# Freebuff desktop app local data
+/.freebuff/
 dsolv
 com.djhaskin.dsolv
 *.bak
-*.dsrepo
-*.dscard
+/*.dsrepo
+/*.dscard
 
-# Generated test data
-test/resources/data/
+# Generated test data (static fixtures under test/resources/data/ are tracked,
+# e.g. the apt Packages.gz indexes and the install-graph expected output)
+/test/resources/data/meta/
+/test/resources/data/test-env-vars/
+/test/resources/data/test-index-sort-order/
+/test/resources/data/test-install-graph/
+/test/resources/data/test-json-config/
+/test/resources/data/test-list-strat/
+/test/resources/data/test-option-packs/
+/test/resources/data/test-output-format/
+/test/resources/data/test-query-output-format/
+/test/resources/data/test-search-strat/
+/test/resources/data/test-version-comparison/

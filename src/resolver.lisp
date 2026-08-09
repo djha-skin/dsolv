@@ -789,21 +789,31 @@
 (defun make-install-graph (package-graph handle)
   "Create an install graph from the package resolution graph.
 
-  HANDLE is a function that maps a package to a string identifier."
-  (fset:reduce (lambda (result key)
-                 (let ((val (fset:lookup package-graph key)))
-                   (if (and (not (eq key :root)) (pi-id key))
-                       (let* ((handle-val (funcall handle key))
-                              (entry (list :name (pi-id key)
-                                           :version (pi-version key)
-                                           :location (pi-location key)
-                                           :dependees
-                                           (loop for child in val
-                                                 collect (funcall handle child)))))
-                         (fset:with result handle-val entry))
-                       result)))
-               (fset:domain package-graph)
-               :initial-value (fset:empty-map)))
+  HANDLE is a function that maps a package to a string identifier.
+  Every resolved package appears as a node, including leaves (which
+  have no dependees). Children are looked up in PACKAGE-GRAPH, where
+  parent packages map to the list of their dependency children."
+  (let ((all-packages (fset:empty-set)))
+    ;; Collect every resolved package: graph keys (parents) and their
+    ;; children, so that leaf packages appear in the install graph too.
+    (fset:do-map (parent children package-graph)
+                 (unless (eq parent :root)
+                   (setf all-packages (fset:with all-packages parent)))
+                 (loop for child in children
+                       do (setf all-packages (fset:with all-packages child))))
+    (fset:reduce (lambda (result pkg)
+                   (fset:with result (funcall handle pkg)
+                              (list :name (pi-id pkg)
+                                    :version (pi-version pkg)
+                                    :location (pi-location pkg)
+                                    :requirements (pi-requirements pkg)
+                                    :metadata nil
+                                    :dependees
+                                    (loop for child
+                                          in (fset:lookup package-graph pkg)
+                                          collect (funcall handle child)))))
+                 all-packages
+                 :initial-value (fset:empty-map))))
 
 ;;; ─── Main resolver entry point ──────────────────────────────────────────────
 

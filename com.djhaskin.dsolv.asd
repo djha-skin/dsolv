@@ -1,5 +1,5 @@
 (defsystem "com.djhaskin.dsolv"
-  :version "0.1.0"
+  :version "0.2.0"
   :author "Daniel Jay Haskin"
   :license "MIT"
   :depends-on (
@@ -29,7 +29,7 @@
   :in-order-to ((test-op (test-op "com.djhaskin.dsolv/tests"))))
 
 (defsystem "com.djhaskin.dsolv/tests"
-  :version "0.1.0"
+  :version "0.2.0"
   :author "Daniel Jay Haskin"
   :license "MIT"
   :depends-on (
