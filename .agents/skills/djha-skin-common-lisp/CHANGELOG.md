@@ -2,6 +2,17 @@
 
 All notable changes to this skill will be documented here.
 
+## [Unreleased]
+
+### Fixed
+
+- lisp-check-parens.ros: handle escaped quotes (`\"`) inside strings via a
+  backslash-run counter so multi-line docstrings containing escaped quotes
+  plus example parens no longer report unbalanced parens.
+- lisp-check-parens.ros: skip `#\X` character literals (single chars like
+  `#\;` and named chars like `#\Space`) so their contents are not mistaken
+  for comments, strings, or parens.
+
 ## [0.1.0] - 2025-07-31
 
 ### Added
