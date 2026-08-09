@@ -25,6 +25,11 @@ All notable changes to this project will be documented in this file.
 - Fix `query-repo` exit status: the subcommand always returned `:successful`;
   a query with no results now exits non-zero (65, `:data-format-error`) as the
   legacy degasolv did, and the error-format output includes a `packages` field.
+- Validate strategy options in `resolve-locations-fn`: `--search-strat`,
+  `--conflict-strat`, `--list-strat`, `--resolve-strat`, and `--index-strat`
+  reject values other than the legacy degasolv choices with a clean
+  `:general-error` message (CLIFF has no validation hook, so the checks run in
+  the subcommand).
 - Fix `resolve-locations` exit status: misbalanced parens in
   `resolve-locations-fn` left the success result map orphaned, so every
   successful resolution fell through to the error path and exited with status

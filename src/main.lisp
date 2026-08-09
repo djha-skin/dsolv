@@ -139,6 +139,14 @@
   (multiple-value-bind (val found) (gethash key ht)
     (if found val default)))
 
+(defun validate-choice (value allowed message)
+  "If VALUE is not one of the ALLOWED strings, throw an exit table for
+   a :general-error printing MESSAGE. Mirrors the validation legacy
+   degasolv performed at the CLI level (CLIFF has no hook)."
+  (unless (member value allowed :test #'string=)
+    (throw 'validation-exit (exit-with :general-error message)))
+  nil)
+
 (defun ht-get-defaults (ht key)
   "Get a value from a hash table, falling back to *subcommand-option-defaults*."
   (multiple-value-bind (val found) (gethash key ht)
@@ -205,6 +213,25 @@
          (error-format (ht-get options :error-format t))
          (version-comparator (get-version-comparator options))
          (pkg-sys-entry (gethash package-system *package-systems*)))
+
+    ;; Validate strategy options (legacy degasolv rejected invalid values at
+    ;; the CLI level; CLIFF has no validation hook, so check here)
+    (catch 'validation-exit
+      (validate-choice
+        search-strat '("breadth-first" "depth-first")
+        "Search strategy must either be 'breadth-first' or 'depth-first'.")
+      (validate-choice
+        conflict-strat '("exclusive" "inclusive" "prioritized")
+        "Conflict strategy must either be 'exclusive', 'inclusive', or 'prioritized'.")
+      (validate-choice
+        list-strat '("as-set" "lazy" "eager")
+        "List strategy must either be 'as-set', 'lazy', or 'eager'. Using the 'lazy' or 'eager' strategy is recommended.")
+      (validate-choice
+        resolve-strat '("thorough" "fast")
+        "Resolve strategy must either be 'thorough' or 'fast'.")
+      (validate-choice
+        index-strat '("priority" "global")
+        "Strategy must either be 'priority' or 'global'.")
 
     ;; Check required arguments
     (when (getf pkg-sys-entry :required-arguments)
@@ -310,7 +337,7 @@
                                  (:plain
                                   (format nil "~{~a~%~}" (mapcar #'explain-problem problems)))))
                 (exit-with :system-error
-                           (format nil "~{~a~%~}" (mapcar #'explain-problem problems)))))))))
+                           (format nil "~{~a~%~}" (mapcar #'explain-problem problems))))))))))
 
 ;;; ─── Subcommand: generate-repo-index ────────────────────────────────────────
 
