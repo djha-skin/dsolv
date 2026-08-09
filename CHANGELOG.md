@@ -10,9 +10,21 @@ All notable changes to this project will be documented in this file.
   `src/pkgsys/subproc.lisp`): runs an external executable, parses its JSON or
   NRDL output, and converts it into resolver query functions. Includes tests
   for JSON/NRDL parsing, non-zero exit handling, and unknown output formats.
+- Regression tests for the `generate-repo-index` → `slurp-degasolv-repo` round
+  trip (`tests/pkgsys-core.lisp`): generated indexes decode into sorted
+  `package-info` structs with requirements intact.
 
 ### Fixed
 
+- Fix `generate-repo-index` card decoding (dsolv-ixz): generated repository
+  indexes now store `package-info` structs instead of raw fset maps, so index
+  sort orders and downstream decoders (`slurp-degasolv-repo`) no longer crash
+  on non-`package-info` entries. Index entries with no requirements serialize
+  as `requirements []` (and requirement specs as `spec []`) rather than
+  `false`, keeping list-typed fields type-stable in the NRDL.
+- Fix `query-repo` exit status: the subcommand always returned `:successful`;
+  a query with no results now exits non-zero (65, `:data-format-error`) as the
+  legacy degasolv did, and the error-format output includes a `packages` field.
 - Fix `resolve-locations` exit status: misbalanced parens in
   `resolve-locations-fn` left the success result map orphaned, so every
   successful resolution fell through to the error path and exited with status

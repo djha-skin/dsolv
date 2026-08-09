@@ -74,7 +74,7 @@
   (let ((ht (make-hash-table :test 'equal)))
     (setf (gethash :status ht) (req-status val))
     (setf (gethash :id ht) (req-id val))
-    (setf (gethash :spec ht) (req-spec val))
+    (setf (gethash :spec ht) (or (req-spec val) (f:empty-seq)))
     (nrdl:inject-object strm ht pretty-indent indented-at :json-mode json-mode)))
 
 (defmethod nrdl:emit-nrdl-struct (strm (val resolver:package-info)
@@ -85,7 +85,8 @@
     (setf (gethash :id ht) (pi-id val))
     (setf (gethash :version ht) (pi-version val))
     (setf (gethash :location ht) (pi-location val))
-    (setf (gethash :requirements ht) (pi-requirements val))
+    (setf (gethash :requirements ht)
+          (or (pi-requirements val) (f:empty-seq)))
     (nrdl:inject-object strm ht pretty-indent indented-at :json-mode json-mode)))
 
 ;;; ─── NRDL data conversion helpers ──────────────────────────────────────────
@@ -437,35 +438,46 @@
                       (funcall aggregate-repo id))))
       (if (fset:empty? results)
           (if error-format
-              (out-exit-with :data-format-error
-                             (ecase (intern (string-upcase output-format) :keyword)
-                               (:json "{\"result\":\"unsuccessful\",\"message\":\"No results returned from query\"}")
-                               (:plain "No results returned from query")
-                               (:nrdl
-                                (let ((ht (make-hash-table :test 'equal)))
-                                  (setf (gethash :result ht) :unsuccessful)
-                                  (setf (gethash :message ht) "No results returned from query")
-                                  (nrdl:generate-to t ht :pretty-indent 2))
-                                (terpri))))
+              (out-exit-with
+                :data-format-error
+                (ecase (intern (string-upcase output-format) :keyword)
+                  (:json
+                   (let ((ht (make-hash-table :test 'equal)))
+                     (setf (gethash :result ht) :unsuccessful)
+                     (setf (gethash :message ht)
+                           "No results returned from query")
+                     (setf (gethash :packages ht) (f:empty-seq))
+                     (with-output-to-string (s)
+                       (nrdl:generate-to s ht :json-mode t))))
+                  (:plain "No results returned from query")
+                  (:nrdl
+                   (let ((ht (make-hash-table :test 'equal)))
+                     (setf (gethash :result ht) :unsuccessful)
+                     (setf (gethash :message ht)
+                           "No results returned from query")
+                     (setf (gethash :packages ht) (f:empty-seq))
+                     (with-output-to-string (s)
+                       (nrdl:generate-to s ht :pretty-indent 2))))))
               (exit-with :data-format-error "No results returned from query"))
-          (ecase (intern (string-upcase output-format) :keyword)
-            (:json
-             (format t "{\"packages\":[~%")
-             (fset:do-seq (pkg results)
-                          (format t "  {\"id\":\"~a\",\"version\":\"~a\",\"location\":\"~a\"}~%"
-                                  (pi-id pkg) (pi-version pkg) (pi-location pkg)))
-             (format t "]}~%"))
-            (:plain
-             (fset:do-seq (pkg results)
-                          (format t "~a~%" (explain-package pkg))))
-            (:nrdl
-             (let ((ht (make-hash-table :test 'equal)))
-               (setf (gethash :packages ht) (fset:convert 'list results))
-               (nrdl:generate-to t ht :pretty-indent 2))
-             (terpri))))
-      (alexandria:alist-hash-table
-        `((:status . :successful)
-          (:cliff-suppress-output . t))))))
+          (progn
+            (ecase (intern (string-upcase output-format) :keyword)
+              (:json
+               (format t "{\"packages\":[~%")
+               (fset:do-seq (pkg results)
+                            (format t "  {\"id\":\"~a\",\"version\":\"~a\",\"location\":\"~a\"}~%"
+                                    (pi-id pkg) (pi-version pkg) (pi-location pkg)))
+               (format t "]}~%"))
+              (:plain
+               (fset:do-seq (pkg results)
+                            (format t "~a~%" (explain-package pkg))))
+              (:nrdl
+               (let ((ht (make-hash-table :test 'equal)))
+                 (setf (gethash :packages ht) (fset:convert 'list results))
+                 (nrdl:generate-to t ht :pretty-indent 2))
+               (terpri)))
+            (alexandria:alist-hash-table
+              `((:status . :successful)
+                (:cliff-suppress-output . t))))))))
 
 ;;; ─── Subcommand: display-config ─────────────────────────────────────────────;;; ─── Subcommand: display-config ─────────────────────────────────────────────
 

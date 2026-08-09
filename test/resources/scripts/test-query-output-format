@@ -85,7 +85,7 @@ if ! \
     -R ${PWD}/index.dsrepo \
     --output-format nrdl \
     --enable-error-format \
-    --query "a>2.0" | grep -q ':packages'
+    --query "a>2.0" | grep -q 'packages'
 then
     exit 1
 fi

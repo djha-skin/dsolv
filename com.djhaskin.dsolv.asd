@@ -54,6 +54,7 @@
                  (:file "version-suggestions")
                  (:file "apt")
                  (:file "git")
+                 (:file "pkgsys-core")
                  (:file "main")
                  (:file "subproc"))))
   :description "Test system for dsolv."
@@ -76,5 +77,6 @@
                                              '#:com.djhaskin.dsolv/tests/version-suggestions
                                              '#:com.djhaskin.dsolv/tests/apt
                                              '#:com.djhaskin.dsolv/tests/git
+                                             '#:com.djhaskin.dsolv/tests/pkgsys-core
                                              '#:com.djhaskin.dsolv/tests/main
                                              '#:com.djhaskin.dsolv/tests/subproc))))
