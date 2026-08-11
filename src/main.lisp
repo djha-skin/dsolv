@@ -917,7 +917,10 @@
         ("-k" . "--add-option-packs")
         ("-c" . "--add-config-files")
         ("-j" . "--add-json-config-files")
-        ("-m" . "--join-meta"))
+        ("-m" . "--join-meta")
+        ;; help page
+        ("-h" . "help")
+        ("--help" . "help"))
       :cli-arguments (if argv
                          (coerce argv 'list)
                          t))))
