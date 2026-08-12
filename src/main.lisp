@@ -45,6 +45,7 @@
   (:import-from #:com.djhaskin.svers)
   (:import-from #:fset)
   (:import-from #:alexandria)
+  (:import-from #:asdf #:component-version #:find-system)
   (:import-from #:cl-ppcre)
   (:local-nicknames
     (#:f #:fset)
@@ -61,10 +62,15 @@
 
    Shared by the construction site (present-packages-map) and the JSON
    emission sites so the present-package marker cannot drift. It also
-   disambiguates JSON serialization of an empty requirement list: in
-   Common Lisp the empty list is NIL, so a resolved package with no
+   disambiguates JSON serialization of an empty requirement list:   in Common Lisp the empty list is NIL, so a resolved package with no
    dependencies (serialize as []) and a present package (serialize as
    null) can only be told apart by this marker.")
+
+(defparameter *dsolv-version*
+  (asdf:component-version (asdf:find-system :com.djhaskin.dsolv))
+  "Version of the dsolv system, read from its ASDF definition.
+
+   Shown on the CLIFF-generated help page.")
 
 ;;; ─── NRDL struct serialization methods ──────────────────────────────────────
 
@@ -817,6 +823,7 @@
     0
     (execute-program
       "dsolv"
+      :version *dsolv-version*
       :subcommand-functions
       (list
         (cons '("resolve-locations") #'resolve-locations-fn)

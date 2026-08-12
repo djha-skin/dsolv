@@ -16,6 +16,16 @@
 *.fasl.gz
 .DS_Store
 
+# OCICL downloaded system code (commit ocicl.csv, not ocicl/)
+ocicl/
+
+# Generated documentation build output
+docs/build/
+docs/manual.scr
+
+# Local TeX misses (from building manual.pdf without a full TeX install)
+missfont.log
+
 # Built binary and test files
 /dsolv
 /build-dsolv.lisp

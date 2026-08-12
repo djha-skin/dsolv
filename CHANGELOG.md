@@ -2,6 +2,31 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+### Added
+
+- Ported the degasolv documentation to a codex/scriba manual (`docs/`):
+  overview, Get dsolv, quickstart, a longer example, per-subcommand command
+  reference, architecture, recipes, changelog, roadmap, code of conduct,
+  contributing, authors, third-party licenses, and an `@cl:doc`-driven API
+  reference. The manual is assembled at build time from per-section sources in
+  `docs/scriba/` (`cat docs/scriba/*.scr > docs/manual.scr`).
+- `scripts/update-docs` (ported from svers): assembles `manual.scr`, builds
+  the docs with `./docs/build-docs.ros`, and rsyncs the generated site into
+  `docs/` for review. The `Makefile` builds the multi-html site, a sidebar-free
+  "simple" variant (pandoc input), and `manual.pdf`.
+- `docs/build-docs.ros` post-processes the codex multi-html output: codex
+  renders each page's TOC while its section→file map is still being filled, so
+  nested sections of later pages get broken `foo.html` links; the build now
+  rewrites them to `page.html#foo` using the manual's real section tree.
+- `ocicl.csv` pinning the codex/scriba/common-doc ecosystem and dsolv's
+  runtime dependencies for reproducible CI installs.
+- GitHub Actions workflow `.github/workflows/docs.yml` that builds the docs in
+  the `djhaskin987/roswell-sbcl-ocicl` container and deploys them to GitHub
+  Pages (`djha-skin/dsolv`), plus the `docs-writing` subskill for the
+  `djha-skin-common-lisp` skill documenting this whole pipeline.
+
 ## [0.2.0] - 2026-08-09
 
 ### Added

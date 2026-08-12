@@ -1,0 +1,118 @@
+@begin(section)
+
+@title(Architecture)
+
+This article describes the overarching architecture of dsolv, together with
+some explanation about some of the design decisions. dsolv is a port of the
+degasolv dependency resolver from Clojure to Common Lisp; the architecture
+described here is inherited from degasolv.
+
+@begin(section)
+@title(Background)
+
+At one of my previous jobs, I was a Build Engineer — a person who built the
+code that the developers wrote and made it available. I had @i(lots) of
+dependency problems coming at me from all different sides:
+
+@begin(list)
+@item(One module in language A depending on another from language B)
+@item(Developers working with a language (at the time) with no clear package
+manager ecosystem (**cough** C++ **cough**))
+@item(Package manager developers breaking builds with backwards-incompatible
+behavior)
+@item(A dependency graph that looked like a dream catcher)
+@end(list)
+
+So I decided to build a tool that would do these things:
+
+@begin(list)
+@item(Resolve dependencies the right way, safely)
+@item(Even resolve dependency chains for different package systems (apt, pip,
+java))
+@item(Be super versatile and generic, able to be plugged into an arbitrary
+build script)
+@end(list)
+
+@end(section)
+
+@begin(section)
+@title(Core Resolver)
+
+At the core of dsolv is a monster function called
+@c(resolve-dependencies-deluxe). It is a rather large function with a
+backtracking, SAT-solver-ish design. Originally it was written to have a
+conflict strategy of @c(exclusive) and a resolve strategy of @c(thorough)
+hard-coded. In other words, the "first class" original use case of dsolv was
+a SAT-solver-class dependency resolver that only allowed a single version of
+any dependency, and ensured that all parties depending on that dependency had
+a chance to agree on what was chosen. These options were later added to allow
+dsolv to act more like Maven and give any build engineer using dsolv useful
+"handbrakes" to change how resolution was being done in-house so that it
+could be modified to conform to business needs. Other options, such as the
+list strategy and the search strategy, were added as time progressed as well
+for similar reasons, and also, frankly, to fix bugs (behaviors that were
+never originally intended).
+
+dsolv models a dependency resolution problem with three main data
+structures, all built on @link[uri="https://fset.common-lisp.dev/"](FSet)
+persistent data structures:
+
+@begin(deflist)
+@term(@c(version-predicate))
+@def(A relation (such as @c(greater-than) or @c(less-equal)) paired with a
+version string.)
+@term(@c(requirement))
+@def(A status (@c(present) or @c(absent)), a package id, and a set of
+alternative version predicates (the "spec").)
+@term(@c(package-info))
+@def(A package id, version, location, and requirements, as read from a card
+or a repository index.)
+@end(deflist)
+
+Requirements are parsed from strings such as @c(a>2.0,<3.0;>4.0) or @c(!b)
+by @c(string-to-requirement).
+
+@end(section)
+
+@begin(section)
+@title(Package Systems)
+
+dsolv resolves dependencies from "package systems" that know how to slurp
+repositories into query functions:
+
+@begin(deflist)
+@term(@c(degasolv))
+@def(The default package system. Reads @c(.dscard) files and
+@c(.dsrepo) repository indexes, using NRDL as the data format.)
+@term(@c(apt))
+@def(Slurps Debian-style @c(Packages.gz) indexes. The parser deliberately
+avoids regular expressions: records are cut at blank lines and key/value
+pairs are split at the first colon using simple linear string operations.
+Regular expressions can be NP-hard to parse and made the original degasolv
+take about 40 minutes on the full Ubuntu package listing, so the parsing here
+is kept linear and predictable.)
+@term(@c(git))
+@def(A stub, preserved for compatibility with degasolv's package system
+interface. It returns no packages.)
+@term(@c(subproc))
+@def(Runs an external executable, parses its JSON or NRDL output, and
+converts it into resolver query functions. Configure it with
+@c(-x)/@c(--subproc-exe) and @c(-u)/@c(--subproc-output-format).)
+@end(deflist)
+
+@end(section)
+
+@begin(section)
+@title(CLI and Configuration)
+
+The command line interface is built with
+@link[uri="https://github.com/djha-skin/cliff"](CLIFF). CLIFF gathers options
+from configuration files (NRDL or JSON), environment variables, and the
+command line, merging them into a single options table. dsolv adds
+degasolv-compatible command line aliases and @c(DEGASOLV_*) environment
+variable aliases on top of CLIFF's own conventions; see the
+@c(Command Reference) for details.
+
+@end(section)
+
+@end(section)

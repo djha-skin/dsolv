@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>
+  Get dsolv &ndash; dsolv: Generic Dependency Resolver
+</title>
+    <link rel="stylesheet" href="static/style.css"/>
+    
+  <link rel="stylesheet" href="static/highlight.css"/>
+  <script src="static/highlight.js"></script>
+  <script src="static/load-mathjax.js" async></script>
+  <style>
+   /* Highlight the current top-level TOC item, and hide the TOC of all other items */
+
+   .toc a[data-node="get-dsolv"] {
+       color: #AD3108;
+   }
+
+   .toc ol {
+       display: none;
+   }
+
+   .toc > ol {
+       display: block;
+   }
+
+   .toc li a[data-node="get-dsolv"] + ol {
+       display: block;
+   }
+
+   .toc li a[data-node="get-dsolv"] + ol li {
+       font-size: 16px;
+       margin: 0 10px;
+   }
+
+   .toc li a[active] + ol li:first-child {
+       margin-top: 5px;
+   }
+  </style>
+
+  </head>
+  <body>
+    
+  <h1 class="doc-title">dsolv: Generic Dependency Resolver » Get dsolv</h1>
+  <article id="article" data-section="get-dsolv">
+    <aside>
+      <ol class="toc"><li><a href="overview.html" data-node="overview">Overview</a><ol><li><a href="overview.html#who-uses-dsolv?" data-node="who-uses-dsolv?">Who Uses dsolv?</a></li></ol></li><li><a href="get-dsolv.html" data-node="get-dsolv">Get dsolv</a><ol><li><a href="get-dsolv.html#install" data-node="install">Install</a></li><li><a href="get-dsolv.html#code" data-node="code">Code</a></li><li><a href="get-dsolv.html#support-and-problems" data-node="support-and-problems">Support and Problems</a></li><li><a href="get-dsolv.html#contributions" data-node="contributions">Contributions</a></li></ol></li><li><a href="quickstart.html" data-node="quickstart">Quickstart</a></li><li><a href="a-longer-example.html" data-node="a-longer-example">A Longer Example</a><ol><li><a href="a-longer-example.html#audience" data-node="audience">Audience</a></li><li><a href="a-longer-example.html#the-dependencies" data-node="the-dependencies">The Dependencies</a></li><li><a href="a-longer-example.html#adding-e-to-the-dsolv-repo" data-node="adding-e-to-the-dsolv-repo">Adding e to the dsolv Repo</a></li><li><a href="a-longer-example.html#adding-d-to-the-dsolv-repo" data-node="adding-d-to-the-dsolv-repo">Adding d to the dsolv Repo</a></li><li><a href="a-longer-example.html#adding-c-to-the-dsolv-repo" data-node="adding-c-to-the-dsolv-repo">Adding c to the dsolv Repo</a></li><li><a href="a-longer-example.html#building-a" data-node="building-a">Building a</a></li></ol></li><li><a href="command-reference.html" data-node="command-reference">Command Reference</a><ol><li><a href="command-reference.html#how-options-are-gathered" data-node="how-options-are-gathered">How Options Are Gathered</a></li><li><a href="command-reference.html#a-note-on-specifying-files" data-node="a-note-on-specifying-files">A Note on Specifying Files</a></li><li><a href="command-reference.html#global-options" data-node="global-options">Global Options</a></li><li><a href="command-reference.html#strategies-and-package-systems" data-node="strategies-and-package-systems">Strategies and Package Systems</a></li><li><a href="command-reference.html#using-site-wide-configuration-files" data-node="using-site-wide-configuration-files">Using Site-Wide Configuration Files</a></li><li><a href="command-reference.html#subcommand--resolve-locations" data-node="subcommand--resolve-locations">Subcommand: resolve-locations</a></li><li><a href="command-reference.html#subcommand--generate-repo-index" data-node="subcommand--generate-repo-index">Subcommand: generate-repo-index</a></li><li><a href="command-reference.html#subcommand--generate-card" data-node="subcommand--generate-card">Subcommand: generate-card</a></li><li><a href="command-reference.html#subcommand--query-repo" data-node="subcommand--query-repo">Subcommand: query-repo</a></li><li><a href="command-reference.html#subcommand--display-config" data-node="subcommand--display-config">Subcommand: display-config</a></li><li><a href="command-reference.html#the-default-action" data-node="the-default-action">The Default Action</a></li><li><a href="command-reference.html#notes-on-versions" data-node="notes-on-versions">Notes on Versions</a></li></ol></li><li><a href="architecture.html" data-node="architecture">Architecture</a><ol><li><a href="architecture.html#background" data-node="background">Background</a></li><li><a href="architecture.html#core-resolver" data-node="core-resolver">Core Resolver</a></li><li><a href="architecture.html#package-systems" data-node="package-systems">Package Systems</a></li><li><a href="architecture.html#cli-and-configuration" data-node="cli-and-configuration">CLI and Configuration</a></li></ol></li><li><a href="recipes.html" data-node="recipes">Recipes</a></li><li><a href="changelog.html" data-node="changelog">Changelog</a><ol><li><a href="changelog.html#0.2.0-—-2026-08-09" data-node="0.2.0-—-2026-08-09">0.2.0 — 2026-08-09</a></li><li><a href="changelog.html#0.1.0-—-2025-07-31" data-node="0.1.0-—-2025-07-31">0.1.0 — 2025-07-31</a></li></ol></li><li><a href="roadmap.html" data-node="roadmap">Roadmap</a><ol><li><a href="roadmap.html#future-releases" data-node="future-releases">Future Releases</a></li><li><a href="roadmap.html#future-features" data-node="future-features">Future Features</a></li></ol></li><li><a href="code-of-conduct.html" data-node="code-of-conduct">Code of Conduct</a><ol><li><a href="code-of-conduct.html#our-pledge" data-node="our-pledge">Our Pledge</a></li><li><a href="code-of-conduct.html#our-standards" data-node="our-standards">Our Standards</a></li><li><a href="code-of-conduct.html#our-responsibilities" data-node="our-responsibilities">Our Responsibilities</a></li><li><a href="code-of-conduct.html#scope" data-node="scope">Scope</a></li><li><a href="code-of-conduct.html#enforcement" data-node="enforcement">Enforcement</a></li><li><a href="code-of-conduct.html#attribution" data-node="attribution">Attribution</a></li></ol></li><li><a href="contributing.html" data-node="contributing">Contributing</a></li><li><a href="authors-and-contributions.html" data-node="authors-and-contributions">Authors and Contributions</a><ol><li><a href="authors-and-contributions.html#authors" data-node="authors">Authors</a></li><li><a href="authors-and-contributions.html#0-contributions" data-node="0-contributions">Contributions</a></li></ol></li><li><a href="3rd-party-licenses.html" data-node="3rd-party-licenses">3rd Party Licenses</a></li><li><a href="api-reference.html" data-node="api-reference">API Reference</a><ol><li><a href="api-reference.html#com.djhaskin.dsolv" data-node="com.djhaskin.dsolv"><code>com.djhaskin.dsolv</code></a><ol><li><a href="api-reference.html#main" data-node="main"><code>main</code></a></li></ol></li><li><a href="api-reference.html#com.djhaskin.dsolv-resolver" data-node="com.djhaskin.dsolv-resolver"><code>com.djhaskin.dsolv/resolver</code></a><ol><li><a href="api-reference.html#resolve-dependencies-deluxe" data-node="resolve-dependencies-deluxe"><code>resolve-dependencies-deluxe</code></a></li><li><a href="api-reference.html#string-to-requirement" data-node="string-to-requirement"><code>string-to-requirement</code></a></li><li><a href="api-reference.html#present" data-node="present"><code>present</code></a></li><li><a href="api-reference.html#absent" data-node="absent"><code>absent</code></a></li><li><a href="api-reference.html#list-packages" data-node="list-packages"><code>list-packages</code></a></li><li><a href="api-reference.html#make-install-graph" data-node="make-install-graph"><code>make-install-graph</code></a></li><li><a href="api-reference.html#make-spec-call" data-node="make-spec-call"><code>make-spec-call</code></a></li><li><a href="api-reference.html#explain-package" data-node="explain-package"><code>explain-package</code></a></li><li><a href="api-reference.html#explain-package-list" data-node="explain-package-list"><code>explain-package-list</code></a></li><li><a href="api-reference.html#explain-problem" data-node="explain-problem"><code>explain-problem</code></a></li><li><a href="api-reference.html#explain-absent-spec" data-node="explain-absent-spec"><code>explain-absent-spec</code></a></li><li><a href="api-reference.html#package-info" data-node="package-info"><code>package-info</code></a></li><li><a href="api-reference.html#make-package-info" data-node="make-package-info"><code>make-package-info</code></a></li><li><a href="api-reference.html#pi-id" data-node="pi-id"><code>pi-id</code></a></li><li><a href="api-reference.html#pi-version" data-node="pi-version"><code>pi-version</code></a></li><li><a href="api-reference.html#pi-location" data-node="pi-location"><code>pi-location</code></a></li><li><a href="api-reference.html#pi-requirements" data-node="pi-requirements"><code>pi-requirements</code></a></li><li><a href="api-reference.html#requirement" data-node="requirement"><code>requirement</code></a></li><li><a href="api-reference.html#make-requirement" data-node="make-requirement"><code>make-requirement</code></a></li><li><a href="api-reference.html#version-predicate" data-node="version-predicate"><code>version-predicate</code></a></li><li><a href="api-reference.html#make-version-predicate" data-node="make-version-predicate"><code>make-version-predicate</code></a></li></ol></li><li><a href="api-reference.html#com.djhaskin.dsolv-util" data-node="com.djhaskin.dsolv-util"><code>com.djhaskin.dsolv/util</code></a><ol><li><a href="api-reference.html#map-query" data-node="map-query"><code>map-query</code></a></li><li><a href="api-reference.html#priority-repo" data-node="priority-repo"><code>priority-repo</code></a></li><li><a href="api-reference.html#global-repo" data-node="global-repo"><code>global-repo</code></a></li><li><a href="api-reference.html#aggregator" data-node="aggregator"><code>aggregator</code></a></li></ol></li><li><a href="api-reference.html#com.djhaskin.dsolv-pkgsys-core" data-node="com.djhaskin.dsolv-pkgsys-core"><code>com.djhaskin.dsolv/pkgsys/core</code></a><ol><li><a href="api-reference.html#read-card" data-node="read-card"><code>read-card</code></a></li><li><a href="api-reference.html#generate-repo-index" data-node="generate-repo-index"><code>generate-repo-index</code></a></li><li><a href="api-reference.html#slurp-degasolv-repo" data-node="slurp-degasolv-repo"><code>slurp-degasolv-repo</code></a></li></ol></li><li><a href="api-reference.html#com.djhaskin.dsolv-pkgsys-apt" data-node="com.djhaskin.dsolv-pkgsys-apt"><code>com.djhaskin.dsolv/pkgsys/apt</code></a><ol><li><a href="api-reference.html#deb-to-degasolv-requirements" data-node="deb-to-degasolv-requirements"><code>deb-to-degasolv-requirements</code></a></li><li><a href="api-reference.html#apt-repo" data-node="apt-repo"><code>apt-repo</code></a></li><li><a href="api-reference.html#slurp-apt-repo" data-node="slurp-apt-repo"><code>slurp-apt-repo</code></a></li></ol></li><li><a href="api-reference.html#com.djhaskin.dsolv-pkgsys-subproc" data-node="com.djhaskin.dsolv-pkgsys-subproc"><code>com.djhaskin.dsolv/pkgsys/subproc</code></a><ol><li><a href="api-reference.html#convert-input" data-node="convert-input"><code>convert-input</code></a></li><li><a href="api-reference.html#make-slurper" data-node="make-slurper"><code>make-slurper</code></a></li></ol></li><li><a href="api-reference.html#com.djhaskin.dsolv-pkgsys-git" data-node="com.djhaskin.dsolv-pkgsys-git"><code>com.djhaskin.dsolv/pkgsys/git</code></a><ol><li><a href="api-reference.html#make-query" data-node="make-query"><code>make-query</code></a></li></ol></li></ol></li></ol>
+    </aside>
+    <main class="codex-section">
+      <h1 id="install">Install</h1><p>dsolv is a Common Lisp program. It is not yet on
+<a href="https://quicklisp.org">Quicklisp</a> or
+<a href="https://github.com/ocicl/ocicl">OCICL</a> as a published system. To
+use it, clone <a href="https://github.com/djha-skin/dsolv">the source
+code</a> and build the executable:</p><pre><code class="sh">git clone https://github.com/djha-skin/dsolv.git
+cd dsolv
+ocicl install          # install the dependencies listed in ocicl.csv
+./scripts/build        # build the ./com.djhaskin.dsolv executable
+</code></pre><p>The <code>./scripts/build</code> script bakes in the large heap and control-stack sizes
+needed for big repository resolutions (for example, the 19 MB APT
+<code>Packages.gz</code> index exercised by the test suite). Override the sizes with
+the <code>DYNAMIC_SPACE_SIZE</code> and <code>CONTROL_STACK_SIZE</code> environment variables
+if your use case needs different values.</p><p>The resulting binary is called <code>com.djhaskin.dsolv</code>. Rename it or symlink it
+into your <code>PATH</code> so you can invoke it as <code>dsolv</code>:</p><pre><code class="sh">ln -s &quot;$PWD/com.djhaskin.dsolv&quot; ~/.local/bin/dsolv
+</code></pre><h1 id="code">Code</h1><p>dsolv lives out on
+<a href="https://github.com/djha-skin/dsolv">Github</a>. It is built on the
+<a href="https://github.com/djha-skin/cliff">CLIFF</a> framework, which
+handles argument parsing, configuration files, and environment variables;
+<a href="https://github.com/djha-skin/svers">svers</a> provides the version
+comparison algorithms; and <a href="https://github.com/djha-skin/nrdl">NRDL</a>
+provides the data format used for configuration and output.</p><h1 id="support-and-problems">Support and Problems</h1><p>If you have a hard time using dsolv to resolve dependencies within builds, it
+is a bug! Please do not hesitate to let the authors know via a
+<a href="https://github.com/djha-skin/dsolv/issues">GitHub issue</a>.</p><h1 id="contributions">Contributions</h1><p>Please contribute to dsolv!
+<a href="https://github.com/djha-skin/dsolv/pulls">Pull requests</a> are most
+welcome. Please have a look at the <code>Contributing</code> page first.</p>
+    </main>
+  </article>
+  <footer>
+    <div class="info">
+      Created with <a href="https://github.com/CommonDoc/codex">Codex</a>.
+    </div>
+  </footer>
+  <script>
+   HighlightLisp.highlight_auto();
+  </script>
+
+  </body>
+</html>

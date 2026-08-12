@@ -1,0 +1,52 @@
+@begin(section)
+
+@title(Roadmap)
+
+This section outlines what we plan on doing to democratize dependency
+management. It may or may not actually be implemented in the future, but
+represents a guide for contributors and users alike as to the hopes and
+vision for the future of the dsolv developers.
+
+@begin(section)
+@title(Future Releases)
+
+@begin(list)
+@item(Tutorial-like help screens designed to keep people from needing to
+switch from docs to cli and back.)
+@item(Shortened versions of all subcommands, including documentation
+updates.)
+@item(Documentation and/or code on the topic of supporting the use case of
+different architectures of the same package using prioritized indexes of
+packages named the same with different contents.)
+@item(Publishing dsolv to @link[uri="https://github.com/ocicl/ocicl"](OCICL)
+and, eventually, Quicklisp.)
+@end(list)
+
+@end(section)
+
+@begin(section)
+@title(Future Features)
+
+Firefighters need tools that can apply in many situations; similarly, ops and
+DevOps professionals, for whom we build this tool, need a dependency
+management tool that can get them out of dependency hell no matter what their
+situation.
+
+@begin(list)
+@item(New subcommands: @c(index-add) and @c(index-rm), to take away from and
+add to a repository index in an installation/removal context.)
+@item(New subcommand: @c(resolve-dependents) to find all dependents in an
+index.)
+@item(User guides:
+@begin(list)
+@item(How to use repositories as generic installation trackers)
+@item(How to track dependencies between kubernetes services)
+@item(How to track dependencies between cross-language builds)
+@item(How to use dsolv to manage a project installation for development
+purposes)
+@end(list))
+@end(list)
+
+@end(section)
+
+@end(section)

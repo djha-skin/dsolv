@@ -16,3 +16,6 @@ is own preferences on how he wants things done.
   Workflow](subskills/development-workflow.md).
 * For the style guide in how the CL code should be written, see [Style
   Guide](subskills/style-guide.md).
+* For how to write and ship project documentation (codex/scriba manuals,
+  GitHub Pages), see [Writing
+  Documentation](subskills/writing-documentation.md).

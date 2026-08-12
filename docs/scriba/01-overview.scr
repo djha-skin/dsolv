@@ -1,0 +1,71 @@
+@begin(section)
+
+@title(Overview)
+
+@image[src=assets/dsolv.png]()
+
+dsolv is a generic dependency resolver written in Common Lisp. It is a port
+of the @link[uri="https://github.com/djhaskin987/degasolv"](degasolv)
+dependency resolver, originally written in Clojure. It exists independent of
+programming languages or systems: you can use it to declare the existence of
+files that your build depends on, version them, and retrieve the URLs of files
+which are of the correct versions. You can easily use these URLs in your
+builds to download everything the build needs.
+
+This document is available as a
+@link[uri="https://djha-skin.github.io/dsolv/manual.pdf"](PDF document).
+
+Since dsolv is a dependency resolver that is relatively technology-agnostic,
+you can declare dependencies between components that are not of the same
+technology. You can declare that a DLL depends on a pip package, or that in
+order to use an NPM package, a certain ruby gem file must be present as well.
+
+Often when building software, multiple different components from multiple
+different teams must be used to create a larger build artifact. These
+components are "released" by different teams, and these teams each use
+different technologies, or the teams themselves do not use a dependency
+manager. As a build engineer, it's your job to bring all of these components
+together to make the build work. dsolv helps you do this. Some examples of
+people who might use dsolv are below. For a more detailed example, see the
+@c(A Longer Example) page.
+
+@begin(section)
+@title(Who Uses dsolv?)
+
+@begin(list)
+@item(@b(Sravan), a build engineer, is responsible for the deployment pipeline
+of his company's cloud offering. There are several components created by
+different teams within his company, using totally different technologies:
+docker images, VM templates, and even PXE files are used to deploy different
+parts of the cloud stack. Each come from a different team, and each are
+released on different schedules. Sravan uses dsolv to version and track these
+artifacts and define relationships between them. He uses a CI build to get the
+URLs of every VM template, docker image, and PXE file, and places all these in
+a zip file which represents his entire cloud stack as a standalone build
+artifact, which can be promoted through environments and run through QA with
+minimal effort.)
+
+@item(@b(Sheila), a build engineer, is responsible for the build of a
+Microsoft installer which installs her company's product. The installer
+contains python components, native code components, and ruby components. The
+installer also takes files from a self-extracting tarball created by a
+third-party vendor, which has its own dependencies. With dsolv, Sheila can
+track all of these files independently of where the files are actually
+located, and she can use dsolv to tell her the exact files she needs for her
+build.)
+
+@item(@b(Daryl), a build engineer, is responsible for building a native code
+library (DLL or SO) file from the native code output from multiple teams. Each
+team releases their code as a zip file or tarball, but haven't really adopted
+a formal dependency resolver in their builds. Further, they are building code
+for Microsoft as well as Linux, and MSBuild files only support relative paths
+when referring to dependencies in a build. Daryl puts the zip archives on his
+NAS, and uses dsolv to resolve the dependencies of the library. dsolv returns
+URLs for all the packages to Daryl, who then uses them in a script to download
+them and place them in the directories where they can be found by the MSBuild
+files. The build works flawlessly.)
+@end(list)
+
+@end(section)
+
+@end(section)

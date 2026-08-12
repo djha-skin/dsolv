@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>
+  Command Reference &ndash; dsolv: Generic Dependency Resolver
+</title>
+    <link rel="stylesheet" href="static/style.css"/>
+    
+  <link rel="stylesheet" href="static/highlight.css"/>
+  <script src="static/highlight.js"></script>
+  <script src="static/load-mathjax.js" async></script>
+  <style>
+   /* Highlight the current top-level TOC item, and hide the TOC of all other items */
+
+   .toc a[data-node="command-reference"] {
+       color: #AD3108;
+   }
+
+   .toc ol {
+       display: none;
+   }
+
+   .toc > ol {
+       display: block;
+   }
+
+   .toc li a[data-node="command-reference"] + ol {
+       display: block;
+   }
+
+   .toc li a[data-node="command-reference"] + ol li {
+       font-size: 16px;
+       margin: 0 10px;
+   }
+
+   .toc li a[active] + ol li:first-child {
+       margin-top: 5px;
+   }
+  </style>
+
+  </head>
+  <body>
+    
+  <h1 class="doc-title">dsolv: Generic Dependency Resolver » Command Reference</h1>
+  <article id="article" data-section="command-reference">
+    <aside>
+      <ol class="toc"><li><a href="overview.html" data-node="overview">Overview</a><ol><li><a href="overview.html#who-uses-dsolv?" data-node="who-uses-dsolv?">Who Uses dsolv?</a></li></ol></li><li><a href="get-dsolv.html" data-node="get-dsolv">Get dsolv</a><ol><li><a href="get-dsolv.html#install" data-node="install">Install</a></li><li><a href="get-dsolv.html#code" data-node="code">Code</a></li><li><a href="get-dsolv.html#support-and-problems" data-node="support-and-problems">Support and Problems</a></li><li><a href="get-dsolv.html#contributions" data-node="contributions">Contributions</a></li></ol></li><li><a href="quickstart.html" data-node="quickstart">Quickstart</a></li><li><a href="a-longer-example.html" data-node="a-longer-example">A Longer Example</a><ol><li><a href="a-longer-example.html#audience" data-node="audience">Audience</a></li><li><a href="a-longer-example.html#the-dependencies" data-node="the-dependencies">The Dependencies</a></li><li><a href="a-longer-example.html#adding-e-to-the-dsolv-repo" data-node="adding-e-to-the-dsolv-repo">Adding e to the dsolv Repo</a></li><li><a href="a-longer-example.html#adding-d-to-the-dsolv-repo" data-node="adding-d-to-the-dsolv-repo">Adding d to the dsolv Repo</a></li><li><a href="a-longer-example.html#adding-c-to-the-dsolv-repo" data-node="adding-c-to-the-dsolv-repo">Adding c to the dsolv Repo</a></li><li><a href="a-longer-example.html#building-a" data-node="building-a">Building a</a></li></ol></li><li><a href="command-reference.html" data-node="command-reference">Command Reference</a><ol><li><a href="command-reference.html#how-options-are-gathered" data-node="how-options-are-gathered">How Options Are Gathered</a></li><li><a href="command-reference.html#a-note-on-specifying-files" data-node="a-note-on-specifying-files">A Note on Specifying Files</a></li><li><a href="command-reference.html#global-options" data-node="global-options">Global Options</a></li><li><a href="command-reference.html#strategies-and-package-systems" data-node="strategies-and-package-systems">Strategies and Package Systems</a></li><li><a href="command-reference.html#using-site-wide-configuration-files" data-node="using-site-wide-configuration-files">Using Site-Wide Configuration Files</a></li><li><a href="command-reference.html#subcommand--resolve-locations" data-node="subcommand--resolve-locations">Subcommand: resolve-locations</a></li><li><a href="command-reference.html#subcommand--generate-repo-index" data-node="subcommand--generate-repo-index">Subcommand: generate-repo-index</a></li><li><a href="command-reference.html#subcommand--generate-card" data-node="subcommand--generate-card">Subcommand: generate-card</a></li><li><a href="command-reference.html#subcommand--query-repo" data-node="subcommand--query-repo">Subcommand: query-repo</a></li><li><a href="command-reference.html#subcommand--display-config" data-node="subcommand--display-config">Subcommand: display-config</a></li><li><a href="command-reference.html#the-default-action" data-node="the-default-action">The Default Action</a></li><li><a href="command-reference.html#notes-on-versions" data-node="notes-on-versions">Notes on Versions</a></li></ol></li><li><a href="architecture.html" data-node="architecture">Architecture</a><ol><li><a href="architecture.html#background" data-node="background">Background</a></li><li><a href="architecture.html#core-resolver" data-node="core-resolver">Core Resolver</a></li><li><a href="architecture.html#package-systems" data-node="package-systems">Package Systems</a></li><li><a href="architecture.html#cli-and-configuration" data-node="cli-and-configuration">CLI and Configuration</a></li></ol></li><li><a href="recipes.html" data-node="recipes">Recipes</a></li><li><a href="changelog.html" data-node="changelog">Changelog</a><ol><li><a href="changelog.html#0.2.0-—-2026-08-09" data-node="0.2.0-—-2026-08-09">0.2.0 — 2026-08-09</a></li><li><a href="changelog.html#0.1.0-—-2025-07-31" data-node="0.1.0-—-2025-07-31">0.1.0 — 2025-07-31</a></li></ol></li><li><a href="roadmap.html" data-node="roadmap">Roadmap</a><ol><li><a href="roadmap.html#future-releases" data-node="future-releases">Future Releases</a></li><li><a href="roadmap.html#future-features" data-node="future-features">Future Features</a></li></ol></li><li><a href="code-of-conduct.html" data-node="code-of-conduct">Code of Conduct</a><ol><li><a href="code-of-conduct.html#our-pledge" data-node="our-pledge">Our Pledge</a></li><li><a href="code-of-conduct.html#our-standards" data-node="our-standards">Our Standards</a></li><li><a href="code-of-conduct.html#our-responsibilities" data-node="our-responsibilities">Our Responsibilities</a></li><li><a href="code-of-conduct.html#scope" data-node="scope">Scope</a></li><li><a href="code-of-conduct.html#enforcement" data-node="enforcement">Enforcement</a></li><li><a href="code-of-conduct.html#attribution" data-node="attribution">Attribution</a></li></ol></li><li><a href="contributing.html" data-node="contributing">Contributing</a></li><li><a href="authors-and-contributions.html" data-node="authors-and-contributions">Authors and Contributions</a><ol><li><a href="authors-and-contributions.html#authors" data-node="authors">Authors</a></li><li><a href="authors-and-contributions.html#0-contributions" data-node="0-contributions">Contributions</a></li></ol></li><li><a href="3rd-party-licenses.html" data-node="3rd-party-licenses">3rd Party Licenses</a></li><li><a href="api-reference.html" data-node="api-reference">API Reference</a><ol><li><a href="api-reference.html#com.djhaskin.dsolv" data-node="com.djhaskin.dsolv"><code>com.djhaskin.dsolv</code></a><ol><li><a href="api-reference.html#main" data-node="main"><code>main</code></a></li></ol></li><li><a href="api-reference.html#com.djhaskin.dsolv-resolver" data-node="com.djhaskin.dsolv-resolver"><code>com.djhaskin.dsolv/resolver</code></a><ol><li><a href="api-reference.html#resolve-dependencies-deluxe" data-node="resolve-dependencies-deluxe"><code>resolve-dependencies-deluxe</code></a></li><li><a href="api-reference.html#string-to-requirement" data-node="string-to-requirement"><code>string-to-requirement</code></a></li><li><a href="api-reference.html#present" data-node="present"><code>present</code></a></li><li><a href="api-reference.html#absent" data-node="absent"><code>absent</code></a></li><li><a href="api-reference.html#list-packages" data-node="list-packages"><code>list-packages</code></a></li><li><a href="api-reference.html#make-install-graph" data-node="make-install-graph"><code>make-install-graph</code></a></li><li><a href="api-reference.html#make-spec-call" data-node="make-spec-call"><code>make-spec-call</code></a></li><li><a href="api-reference.html#explain-package" data-node="explain-package"><code>explain-package</code></a></li><li><a href="api-reference.html#explain-package-list" data-node="explain-package-list"><code>explain-package-list</code></a></li><li><a href="api-reference.html#explain-problem" data-node="explain-problem"><code>explain-problem</code></a></li><li><a href="api-reference.html#explain-absent-spec" data-node="explain-absent-spec"><code>explain-absent-spec</code></a></li><li><a href="api-reference.html#package-info" data-node="package-info"><code>package-info</code></a></li><li><a href="api-reference.html#make-package-info" data-node="make-package-info"><code>make-package-info</code></a></li><li><a href="api-reference.html#pi-id" data-node="pi-id"><code>pi-id</code></a></li><li><a href="api-reference.html#pi-version" data-node="pi-version"><code>pi-version</code></a></li><li><a href="api-reference.html#pi-location" data-node="pi-location"><code>pi-location</code></a></li><li><a href="api-reference.html#pi-requirements" data-node="pi-requirements"><code>pi-requirements</code></a></li><li><a href="api-reference.html#requirement" data-node="requirement"><code>requirement</code></a></li><li><a href="api-reference.html#make-requirement" data-node="make-requirement"><code>make-requirement</code></a></li><li><a href="api-reference.html#version-predicate" data-node="version-predicate"><code>version-predicate</code></a></li><li><a href="api-reference.html#make-version-predicate" data-node="make-version-predicate"><code>make-version-predicate</code></a></li></ol></li><li><a href="api-reference.html#com.djhaskin.dsolv-util" data-node="com.djhaskin.dsolv-util"><code>com.djhaskin.dsolv/util</code></a><ol><li><a href="api-reference.html#map-query" data-node="map-query"><code>map-query</code></a></li><li><a href="api-reference.html#priority-repo" data-node="priority-repo"><code>priority-repo</code></a></li><li><a href="api-reference.html#global-repo" data-node="global-repo"><code>global-repo</code></a></li><li><a href="api-reference.html#aggregator" data-node="aggregator"><code>aggregator</code></a></li></ol></li><li><a href="api-reference.html#com.djhaskin.dsolv-pkgsys-core" data-node="com.djhaskin.dsolv-pkgsys-core"><code>com.djhaskin.dsolv/pkgsys/core</code></a><ol><li><a href="api-reference.html#read-card" data-node="read-card"><code>read-card</code></a></li><li><a href="api-reference.html#generate-repo-index" data-node="generate-repo-index"><code>generate-repo-index</code></a></li><li><a href="api-reference.html#slurp-degasolv-repo" data-node="slurp-degasolv-repo"><code>slurp-degasolv-repo</code></a></li></ol></li><li><a href="api-reference.html#com.djhaskin.dsolv-pkgsys-apt" data-node="com.djhaskin.dsolv-pkgsys-apt"><code>com.djhaskin.dsolv/pkgsys/apt</code></a><ol><li><a href="api-reference.html#deb-to-degasolv-requirements" data-node="deb-to-degasolv-requirements"><code>deb-to-degasolv-requirements</code></a></li><li><a href="api-reference.html#apt-repo" data-node="apt-repo"><code>apt-repo</code></a></li><li><a href="api-reference.html#slurp-apt-repo" data-node="slurp-apt-repo"><code>slurp-apt-repo</code></a></li></ol></li><li><a href="api-reference.html#com.djhaskin.dsolv-pkgsys-subproc" data-node="com.djhaskin.dsolv-pkgsys-subproc"><code>com.djhaskin.dsolv/pkgsys/subproc</code></a><ol><li><a href="api-reference.html#convert-input" data-node="convert-input"><code>convert-input</code></a></li><li><a href="api-reference.html#make-slurper" data-node="make-slurper"><code>make-slurper</code></a></li></ol></li><li><a href="api-reference.html#com.djhaskin.dsolv-pkgsys-git" data-node="com.djhaskin.dsolv-pkgsys-git"><code>com.djhaskin.dsolv/pkgsys/git</code></a><ol><li><a href="api-reference.html#make-query" data-node="make-query"><code>make-query</code></a></li></ol></li></ol></li></ol>
+    </aside>
+    <main class="codex-section">
+      <p>This guide describes the dsolv CLI: what subcommands and options there are,
+and what they are for. It also describes how to specify options.</p><h1 id="how-options-are-gathered">How Options Are Gathered</h1><p>dsolv is a <a href="https://github.com/djha-skin/cliff">CLIFF</a>-powered
+program. Options can be given via configuration files, environment variables,
+and the command line, in that order, with later values overriding earlier
+ones.</p><p>Configuration files are consulted from a system-wide location
+(<code>/etc/dsolv/config.nrdl</code> on Linux), a home-directory location
+(<code>~/.config/dsolv/config.nrdl</code> on Linux), and a file named <code>.dsolv.nrdl</code>
+in the current directory (or any of its parents). Files can also be specified
+explicitly with the <code>-c</code>/<code>--config-file</code>(NRDL) and
+<code>-j</code>/<code>--json-config</code>(JSON) options. When multiple files are given, later
+files override earlier ones.</p><p>Every option has a corresponding environment variable, named
+<code>DSOLV_&lt;KIND&gt;_&lt;OPTION&gt;</code>:</p><ul><li><code>DSOLV_FLAG_&lt;OPTION&gt;=1</code> enables a flag</li><li><code>DSOLV_ITEM_&lt;OPTION&gt;=&lt;VALUE&gt;</code> sets a string value</li><li><code>DSOLV_LIST_&lt;OPTION&gt;=&lt;V1&gt;,&lt;V2&gt;,...</code> sets a list option</li><li><code>DSOLV_TABLE_&lt;OPTION&gt;=&lt;K1&gt;,&lt;V1&gt;=&lt;K2&gt;,&lt;V2&gt;=...</code> sets a key/value
+table option</li><li><code>DSOLV_NRDL_&lt;OPTION&gt;=&lt;NRDL_STRING&gt;</code> sets a value using a NRDL string</li><li><code>DSOLV_FILE_&lt;OPTION&gt;=&lt;FILE_PATH&gt;</code> sets a value from a NRDL document
+in a file, as if by the <code>--file-*</code> flag</li><li><code>DSOLV_RAW_&lt;OPTION&gt;=&lt;FILE_PATH&gt;</code> sets a value from the raw bytes of a
+file, as if by the <code>--raw-*</code> flag</li></ul><p>For compatibility with degasolv, the legacy <code>DEGASOLV_*</code> environment
+variables are aliased to their <code>DSOLV_*</code> equivalents; for example,
+<code>DEGASOLV_REQUIREMENTS</code> is an alias for <code>DSOLV_LIST_REQUIREMENTS</code> and
+<code>DEGASOLV_CONFIG_FILES</code> for <code>DSOLV_LIST_CONFIG_FILES</code>. The full alias
+table is printed on the <code>help</code> page.</p><p>On the command line, each option can be set with a
+<code>--set-&lt;option&gt; &lt;value&gt;</code>(string), <code>--add-&lt;option&gt; &lt;value&gt;</code>(list),
+<code>--join-&lt;option&gt; &lt;key&gt;=&lt;value&gt;</code>(table), <code>--nrdl-&lt;option&gt; &lt;nrdl&gt;</code>(NRDL
+string), or <code>--enable-&lt;option&gt;</code>/<code>--disable-&lt;option&gt;</code>(flag) form. The
+legacy degasolv spellings (<code>--requirement</code>, <code>--repository</code>, <code>-r</code>,
+<code>-R</code>, and so on) are provided as command line aliases, and are what the
+rest of this guide uses.</p><h1 id="a-note-on-specifying-files">A Note on Specifying Files</h1><p>Whenever an option takes a file, the user can specify one of four things:</p><ol><li>An <code>http://</code> or <code>https://</code> URL. URL-encoded authentication can be
+specified before the <code>@</code> character:
+<ul><li><code>https://username:password@example.com/...</code> for HTTP basic
+authentication</li><li><code>https://token@example.com/...</code> for an OAuth2 bearer token</li><li><code>https://X-Auth-Token=value@example.com/...</code> for a custom HTTP
+header</li></ul></li><li>A <code>file://</code> URL.</li><li>A plain filesystem reference.</li><li>The character <code>-</code>, signifying standard input.</li></ol><p>This is true for options of dsolv and options of any of its subcommands.</p><h1 id="global-options">Global Options</h1><p>These options are accepted by dsolv itself and are available to every
+subcommand:</p><dl><dt><code>-c</code>, <code>--config-file <i>&lt;file&gt;</i></code></dt><dd>Add an NRDL configuration file. May be specified multiple times; later
+files override earlier ones. Environment: <code>DSOLV_LIST_CONFIG_FILES</code> /
+<code>DEGASOLV_CONFIG_FILES</code>.</dd><dt><code>-j</code>, <code>--json-config <i>&lt;file&gt;</i></code></dt><dd>Add a JSON configuration file. May be specified multiple times;
+later files override earlier ones. Environment:
+<code>DSOLV_LIST_JSON_CONFIG_FILES</code> / <code>DEGASOLV_JSON_CONFIG_FILES</code>.</dd><dt><code>-k</code>, <code>--option-pack <i>&lt;pack&gt;</i></code></dt><dd>Apply an option pack, a bundle of default option values. Available
+packs are <code>v1</code>, <code>multi-version-mode</code>, and <code>firstfound-version-mode</code>
+(see <code>Strategies and Package Systems</code> below). May be specified multiple
+times. Environment: <code>DSOLV_LIST_OPTION_PACKS</code> /
+<code>DEGASOLV_OPTION_PACKS</code>.</dd><dt><code>-h</code>, <code>--help</code>, <code>help</code></dt><dd>Print the help page.</dd><dt><code>--meta <i>&lt;key&gt;=&lt;value&gt;</i></code></dt><dd>Set a metadata key/value pair. May be specified multiple times.
+Environment: <code>DSOLV_TABLE_META</code>.</dd></dl><h1 id="strategies-and-package-systems">Strategies and Package Systems</h1><p>Several options control how resolution behaves. They are shared between
+subcommands that resolve dependencies.</p><dl><dt><code>-t</code>, <code>--package-system <i>&lt;system&gt;</i></code></dt><dd>The package system to use for slurping repositories. One of
+<code>degasolv</code>(the default; <code>.dscard</code>/<code>.dsrepo</code> files),
+<code>apt</code>(Debian <code>Packages.gz</code> indexes), <code>git</code>(a stub), or <code>subproc</code>
+(an external executable). Environment:
+<code>DSOLV_ITEM_PACKAGE_SYSTEM</code> / <code>DEGASOLV_PACKAGE_SYSTEM</code>.</dd><dt><code>-e</code>, <code>--search-strat <i>&lt;strat&gt;</i></code></dt><dd>Search strategy: <code>breadth-first</code>(default) or <code>depth-first</code>.</dd><dt><code>-f</code>, <code>--conflict-strat <i>&lt;strat&gt;</i></code></dt><dd>Conflict strategy: <code>exclusive</code>(default), <code>inclusive</code>, or
+<code>prioritized</code>.</dd><dt><code>-L</code>, <code>--list-strat <i>&lt;strat&gt;</i></code></dt><dd>List strategy: <code>lazy</code>(default), <code>eager</code>, or <code>as-set</code>.</dd><dt><code>-s</code>, <code>--resolve-strat <i>&lt;strat&gt;</i></code></dt><dd>Resolve strategy: <code>thorough</code>(default) or <code>fast</code>.</dd><dt><code>-S</code>, <code>--index-strat <i>&lt;strat&gt;</i></code></dt><dd>Index aggregation strategy: <code>priority</code>(default) or <code>global</code>.</dd><dt><code>-O</code>, <code>--index-sort-order <i>&lt;order&gt;</i></code></dt><dd>Sort order for repository index entries: <code>descending</code>(default) or
+<code>ascending</code>.</dd><dt><code>-V</code>, <code>--version-comparison <i>&lt;scheme&gt;</i></code></dt><dd>The version comparison scheme: <code>debian</code>, <code>maven</code>, <code>naive</code>,
+<code>python</code>, <code>rpm</code>, <code>rubygem</code>, or <code>semver</code>(the default). Provided by
+the svers library.</dd><dt><code>--enable-alternatives</code> / <code>--disable-alternatives</code></dt><dd>Whether to consider alternative versions of a package (default:
+enabled). Environment: <code>DSOLV_FLAG_ALTERNATIVES</code> /
+<code>DEGASOLV_ALTERNATIVES</code>.</dd><dt><code>--enable-error-format</code> / <code>--disable-error-format</code></dt><dd>Whether errors are printed as NRDL/JSON documents (default: disabled).
+Environment: <code>DSOLV_FLAG_ERROR_FORMAT</code> / <code>DEGASOLV_ERROR_FORMAT</code>.</dd><dt><code>-o</code>, <code>--output-format <i>&lt;format&gt;</i></code></dt><dd>Output format: <code>plain</code>(default), <code>json</code>, or <code>nrdl</code>.</dd></dl><h1 id="using-site-wide-configuration-files">Using Site-Wide Configuration Files</h1><p>The way configuration files are merged (see How Options Are Gathered above),
+together with the fact that configuration files may be given as <code>http://</code>
+or <code>https://</code> URLs (see A Note on Specifying Files above), makes it
+possible to configure every dsolv installation in an organization from a
+single, centrally served configuration file.</p><p>Several options fundamentally change how dsolv behaves: <code>--conflict-strat</code>,
+<code>--index-strat</code>, <code>--resolve-strat</code>, and <code>--search-strat</code>(see
+Strategies and Package Systems above). It is recommended that these options
+be specified site-wide, if they are specified at all. Putting them in a site
+configuration file and serving that file internally over HTTP(S) lets each
+build point at the site file together with its own build-specific
+configuration, as in this example:</p><pre><code class="sh">dsolv \
+    --config-file &quot;https://nas.example.com/dsolv/site.nrdl&quot; \
+    --config-file &quot;./.dsolv.nrdl&quot; \
+    generate-card
+</code></pre><p>Remember that configuration files can also be specified with environment
+variables. The example above looks like this when environment variables are
+used, setting the <code>--config-file</code> option for every invocation:</p><pre><code class="sh">export DSOLV_LIST_CONFIG_FILES=&quot;https://nas.example.com/dsolv/site.nrdl,./.dsolv.nrdl&quot;
+dsolv generate-card
+</code></pre><p>Here is the same example using JSON configuration files:</p><pre><code class="sh">export DSOLV_LIST_JSON_CONFIG_FILES=&quot;https://nas.example.com/dsolv/site.json,./.dsolv.json&quot;
+dsolv generate-card
+</code></pre><p>For compatibility with degasolv, the legacy <code>DEGASOLV_CONFIG_FILES</code> and
+<code>DEGASOLV_JSON_CONFIG_FILES</code> environment variables are aliases for
+<code>DSOLV_LIST_CONFIG_FILES</code> and <code>DSOLV_LIST_JSON_CONFIG_FILES</code>
+respectively.</p><p>As with any configuration that may contain passwords or API tokens (for
+example, in the URLs of configuration files or repository indexes), decide
+how sensitive information should reach dsolv. Options include environment
+variables, standard input (<code>-</code> as the filename), configuration files with
+appropriate filesystem permissions, or the command line itself; dsolv leaves
+the choice of what is sufficiently secure to you.</p><h1 id="subcommand--resolve-locations">Subcommand: resolve-locations</h1><p>Resolve dependencies and print package locations. This is the heart of
+dsolv: it takes requirements, a repository, and strategy options, and returns
+the locations of the packages that satisfy the requirements.</p><p>Arguments used by <code>resolve-locations</code>:</p><dl><dt><code>-r</code>, <code>--requirement <i>&lt;req&gt;</i></code></dt><dd>Add a requirement, such as <code>a&gt;2.0,&lt;3.0</code> or <code>!b</code>. May be specified
+multiple times. Required. Environment:
+<code>DSOLV_LIST_REQUIREMENTS</code> / <code>DEGASOLV_REQUIREMENTS</code>.</dd><dt><code>-R</code>, <code>--repository <i>&lt;url&gt;</i></code></dt><dd>Add a repository to consult. May be specified multiple times. Required
+(unless the package system provides its own query constructor).
+Environment: <code>DSOLV_LIST_REPOSITORIES</code> / <code>DEGASOLV_REPOSITORIES</code>.</dd><dt><code>-p</code>, <code>--present-package <i>&lt;id==version&gt;</i></code></dt><dd>Declare a package as already present in the build, in the form
+<code>id==version</code>. May be specified multiple times. Environment:
+<code>DSOLV_LIST_PRESENT_PACKAGES</code> / <code>DEGASOLV_PRESENT_PACKAGES</code>.</dd><dt><code>-o</code>, <code>--output-format <i>&lt;format&gt;</i></code></dt><dd>Output format for the resolution result: <code>plain</code>(default),
+<code>json</code>, or <code>nrdl</code>.</dd><dt><code>-t</code>, <code>--package-system <i>&lt;system&gt;</i></code></dt><dd>The package system to use (see <code>Strategies and Package Systems</code>).</dd><dt><code>-e</code>, <code>--search-strat <i>&lt;strat&gt;</i></code></dt><dd>Search strategy: <code>breadth-first</code> or <code>depth-first</code>.</dd><dt><code>-f</code>, <code>--conflict-strat <i>&lt;strat&gt;</i></code></dt><dd>Conflict strategy: <code>exclusive</code>, <code>inclusive</code>, or <code>prioritized</code>.</dd><dt><code>-L</code>, <code>--list-strat <i>&lt;strat&gt;</i></code></dt><dd>List strategy: <code>lazy</code>, <code>eager</code>, or <code>as-set</code>.</dd><dt><code>-s</code>, <code>--resolve-strat <i>&lt;strat&gt;</i></code></dt><dd>Resolve strategy: <code>thorough</code> or <code>fast</code>.</dd><dt><code>-S</code>, <code>--index-strat <i>&lt;strat&gt;</i></code></dt><dd>Index aggregation strategy: <code>priority</code> or <code>global</code>.</dd><dt><code>-V</code>, <code>--version-comparison <i>&lt;scheme&gt;</i></code></dt><dd>Version comparison scheme (see <code>Strategies and Package Systems</code>).</dd><dt><code>--enable-alternatives</code> / <code>--disable-alternatives</code></dt><dd>Whether to consider alternative versions of a package.</dd><dt><code>--enable-error-format</code> / <code>--disable-error-format</code></dt><dd>Whether errors are printed as documents.</dd><dt><code>-m</code>, <code>--meta <i>&lt;key&gt;=&lt;value&gt;</i></code></dt><dd>Set metadata on the result.</dd><dt><code>-k</code>, <code>--option-pack <i>&lt;pack&gt;</i></code></dt><dd>Apply an option pack.</dd><dt><code>-c</code>, <code>--config-file <i>&lt;file&gt;</i></code> and <code>-j</code>, <code>--json-config <i>&lt;file&gt;</i></code></dt><dd>Specify configuration files (see <code>Global Options</code>).</dd></dl><h1 id="subcommand--generate-repo-index">Subcommand: generate-repo-index</h1><p>Generate a <code>.dsrepo</code> repository index from the <code>.dscard</code> files found
+under a search directory.</p><p>Arguments used by <code>generate-repo-index</code>:</p><dl><dt><code>-d</code>, <code>--search-directory <i>&lt;dir&gt;</i></code></dt><dd>The directory to search for <code>.dscard</code> files. Default: <code>.</code>.
+Environment: <code>DSOLV_ITEM_SEARCH_DIRECTORY</code> /
+<code>DEGASOLV_SEARCH_DIRECTORY</code>.</dd><dt><code>-I</code>, <code>--index-file <i>&lt;file&gt;</i></code></dt><dd>The index file to write. Default: <code>index.dsrepo</code>. Environment:
+<code>DSOLV_ITEM_INDEX_FILE</code> / <code>DEGASOLV_INDEX_FILE</code>.</dd><dt><code>-a</code>, <code>--add-to <i>&lt;file&gt;</i></code></dt><dd>If given, an existing index to merge the new entries into, rather than
+starting from an empty index.</dd><dt><code>-O</code>, <code>--index-sort-order <i>&lt;order&gt;</i></code></dt><dd>Sort order for the index entries: <code>descending</code>(default) or
+<code>ascending</code>.</dd><dt><code>-V</code>, <code>--version-comparison <i>&lt;scheme&gt;</i></code></dt><dd>Version comparison scheme used for sorting. Default: <code>semver</code>.</dd></dl><h1 id="subcommand--generate-card">Subcommand: generate-card</h1><p>Generate a <code>.dscard</code> file representing a package in a dsolv repository.</p><p>Arguments used by <code>generate-card</code>:</p><dl><dt><code>-i</code>, <code>--id <i>&lt;id&gt;</i></code></dt><dd>The package id. Required. Environment: <code>DSOLV_ITEM_ID</code> /
+<code>DEGASOLV_ID</code>.</dd><dt><code>-v</code>, <code>--version <i>&lt;version&gt;</i></code></dt><dd>The package version. Required. Environment: <code>DSOLV_ITEM_VERSION</code> /
+<code>DEGASOLV_VERSION</code>.</dd><dt><code>-l</code>, <code>--location <i>&lt;url&gt;</i></code></dt><dd>Where the package artifact can be downloaded. Required. Environment:
+<code>DSOLV_ITEM_LOCATION</code> / <code>DEGASOLV_LOCATION</code>.</dd><dt><code>-r</code>, <code>--requirement <i>&lt;req&gt;</i></code></dt><dd>Add a requirement of this package. May be specified multiple times.</dd><dt><code>-m</code>, <code>--meta <i>&lt;key&gt;=&lt;value&gt;</i></code></dt><dd>Set additional metadata fields on the card. Keys that conflict with the
+card's built-in fields (<code>id</code>, <code>version</code>, <code>location</code>,
+<code>requirements</code>) are ignored.</dd><dt><code>-C</code>, <code>--card-file <i>&lt;file&gt;</i></code></dt><dd>Where to write the card. Default: <code>./out.dscard</code>. Environment:
+<code>DSOLV_ITEM_CARD_FILE</code> / <code>DEGASOLV_CARD_FILE</code>.</dd></dl><h1 id="subcommand--query-repo">Subcommand: query-repo</h1><p>Query a repository for the packages matching a query, without resolving.</p><p>Arguments used by <code>query-repo</code>:</p><dl><dt><code>-R</code>, <code>--repository <i>&lt;url&gt;</i></code></dt><dd>Add a repository to query. May be specified multiple times. Required.</dd><dt><code>-q</code>, <code>--query <i>&lt;query&gt;</i></code></dt><dd>The query, a requirement such as <code>e</code> or <code>e&gt;=1.8.0</code>. Required.
+Environment: <code>DSOLV_ITEM_QUERY</code> / <code>DEGASOLV_QUERY</code>.</dd><dt><code>-S</code>, <code>--index-strat <i>&lt;strat&gt;</i></code></dt><dd>Index aggregation strategy: <code>priority</code> or <code>global</code>.</dd><dt><code>-o</code>, <code>--output-format <i>&lt;format&gt;</i></code></dt><dd>Output format: <code>plain</code>, <code>json</code>, or <code>nrdl</code>.</dd><dt><code>-t</code>, <code>--package-system <i>&lt;system&gt;</i></code></dt><dd>The package system to use.</dd><dt><code>-V</code>, <code>--version-comparison <i>&lt;scheme&gt;</i></code></dt><dd>Version comparison scheme.</dd><dt><code>--enable-error-format</code> / <code>--disable-error-format</code></dt><dd>Whether an empty result set is reported as an error document.</dd></dl><h1 id="subcommand--display-config">Subcommand: display-config</h1><p>Display the effective configuration, after merging configuration files,
+environment variables, and the command line.</p><p>Arguments used by <code>display-config</code>:</p><dl><dt><code>-o</code>, <code>--output-format <i>&lt;format&gt;</i></code></dt><dd>Output format: <code>plain</code>, <code>json</code>, or <code>nrdl</code>.</dd><dt><code>-c</code>, <code>--config-file <i>&lt;file&gt;</i></code> and <code>-j</code>, <code>--json-config <i>&lt;file&gt;</i></code></dt><dd>Specify configuration files whose effective contents should be shown.</dd></dl><h1 id="the-default-action">The Default Action</h1><p>Running <code>dsolv</code> with no subcommand prints a short usage message and the
+list of available subcommands. To learn more about a specific subcommand,
+run <code>dsolv &lt;subcommand&gt; help</code> or pass <code>--enable-help</code>.</p><h1 id="notes-on-versions">Notes on Versions</h1><ul><li>On a best-effort basis, features have had the version that they first
+appeared associated with them in this guide.</li><li>As of version 1.3.0 of degasolv (whose CLI dsolv mirrors), all options
+which take a file may be given <code>-</code> as the filename to specify standard
+input. dsolv inherits this behavior.</li></ul>
+    </main>
+  </article>
+  <footer>
+    <div class="info">
+      Created with <a href="https://github.com/CommonDoc/codex">Codex</a>.
+    </div>
+  </footer>
+  <script>
+   HighlightLisp.highlight_auto();
+  </script>
+
+  </body>
+</html>

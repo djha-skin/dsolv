@@ -1,0 +1,67 @@
+@begin(section)
+
+@title(Get dsolv)
+
+@begin(section)
+@title(Install)
+
+dsolv is a Common Lisp program. It is not yet on
+@link[uri="https://quicklisp.org"](Quicklisp) or
+@link[uri="https://github.com/ocicl/ocicl"](OCICL) as a published system. To
+use it, clone @link[uri="https://github.com/djha-skin/dsolv"](the source
+code) and build the executable:
+
+@begin[lang=sh](code)
+git clone https://github.com/djha-skin/dsolv.git
+cd dsolv
+ocicl install          # install the dependencies listed in ocicl.csv
+./scripts/build        # build the ./com.djhaskin.dsolv executable
+@end(code)
+
+The @c(./scripts/build) script bakes in the large heap and control-stack sizes
+needed for big repository resolutions (for example, the 19 MB APT
+@c(Packages.gz) index exercised by the test suite). Override the sizes with
+the @c(DYNAMIC_SPACE_SIZE) and @c(CONTROL_STACK_SIZE) environment variables
+if your use case needs different values.
+
+The resulting binary is called @c(com.djhaskin.dsolv). Rename it or symlink it
+into your @c(PATH) so you can invoke it as @c(dsolv):
+
+@begin[lang=sh](code)
+ln -s "$PWD/com.djhaskin.dsolv" ~/.local/bin/dsolv
+@end(code)
+
+@end(section)
+
+@begin(section)
+@title(Code)
+
+dsolv lives out on
+@link[uri="https://github.com/djha-skin/dsolv"](Github). It is built on the
+@link[uri="https://github.com/djha-skin/cliff"](CLIFF) framework, which
+handles argument parsing, configuration files, and environment variables;
+@link[uri="https://github.com/djha-skin/svers"](svers) provides the version
+comparison algorithms; and @link[uri="https://github.com/djha-skin/nrdl"](NRDL)
+provides the data format used for configuration and output.
+
+@end(section)
+
+@begin(section)
+@title(Support and Problems)
+
+If you have a hard time using dsolv to resolve dependencies within builds, it
+is a bug! Please do not hesitate to let the authors know via a
+@link[uri="https://github.com/djha-skin/dsolv/issues"](GitHub issue).
+
+@end(section)
+
+@begin(section)
+@title(Contributions)
+
+Please contribute to dsolv!
+@link[uri="https://github.com/djha-skin/dsolv/pulls"](Pull requests) are most
+welcome. Please have a look at the @c(Contributing) page first.
+
+@end(section)
+
+@end(section)

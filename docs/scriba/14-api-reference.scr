@@ -1,0 +1,219 @@
+@begin(section)
+
+@title(API Reference)
+
+This section details the API provided by dsolv. The packages mirror the
+source files: @c(com.djhaskin.dsolv/resolver) holds the resolver data
+structures and algorithm, @c(com.djhaskin.dsolv/util) the repository
+utilities, and the @c(com.djhaskin.dsolv/pkgsys/*) packages the package
+system slurpers.
+
+@begin(section)
+@title(@c(com.djhaskin.dsolv))
+
+The main package of the system. Its primary export is @c(main), the entry
+point for the CLI tool.
+
+@cl:with-package[name="com.djhaskin.dsolv"](
+@begin(section)
+@title(@c(main))
+@cl:doc(function main)
+@end(section)
+)
+@end(section)
+
+@begin(section)
+@title(@c(com.djhaskin.dsolv/resolver))
+
+The core resolver: data structures (@c(package-info), @c(requirement),
+@c(version-predicate), @c(decorated-requirement)) and the resolution
+algorithm itself.
+
+@cl:with-package[name="com.djhaskin.dsolv/resolver"](
+@begin(section)
+@title(@c(resolve-dependencies-deluxe))
+@cl:doc(function resolve-dependencies-deluxe)
+@end(section)
+@begin(section)
+@title(@c(string-to-requirement))
+@cl:doc(function string-to-requirement)
+@end(section)
+@begin(section)
+@title(@c(present))
+@cl:doc(function present)
+@end(section)
+@begin(section)
+@title(@c(absent))
+@cl:doc(function absent)
+@end(section)
+@begin(section)
+@title(@c(list-packages))
+@cl:doc(function list-packages)
+@end(section)
+@begin(section)
+@title(@c(make-install-graph))
+@cl:doc(function make-install-graph)
+@end(section)
+@begin(section)
+@title(@c(make-spec-call))
+@cl:doc(function make-spec-call)
+@end(section)
+@begin(section)
+@title(@c(explain-package))
+@cl:doc(function explain-package)
+@end(section)
+@begin(section)
+@title(@c(explain-package-list))
+@cl:doc(function explain-package-list)
+@end(section)
+@begin(section)
+@title(@c(explain-problem))
+@cl:doc(function explain-problem)
+@end(section)
+@begin(section)
+@title(@c(explain-absent-spec))
+@cl:doc(function explain-absent-spec)
+@end(section)
+@begin(section)
+@title(@c(package-info))
+@cl:doc(function package-info)
+@end(section)
+@begin(section)
+@title(@c(make-package-info))
+@cl:doc(function make-package-info)
+@end(section)
+@begin(section)
+@title(@c(pi-id))
+@cl:doc(function pi-id)
+@end(section)
+@begin(section)
+@title(@c(pi-version))
+@cl:doc(function pi-version)
+@end(section)
+@begin(section)
+@title(@c(pi-location))
+@cl:doc(function pi-location)
+@end(section)
+@begin(section)
+@title(@c(pi-requirements))
+@cl:doc(function pi-requirements)
+@end(section)
+@begin(section)
+@title(@c(requirement))
+@cl:doc(function requirement)
+@end(section)
+@begin(section)
+@title(@c(make-requirement))
+@cl:doc(function make-requirement)
+@end(section)
+@begin(section)
+@title(@c(version-predicate))
+@cl:doc(function version-predicate)
+@end(section)
+@begin(section)
+@title(@c(make-version-predicate))
+@cl:doc(function make-version-predicate)
+@end(section)
+)
+@end(section)
+
+@begin(section)
+@title(@c(com.djhaskin.dsolv/util))
+
+Repository aggregation and query utilities.
+
+@cl:with-package[name="com.djhaskin.dsolv/util"](
+@begin(section)
+@title(@c(map-query))
+@cl:doc(function map-query)
+@end(section)
+@begin(section)
+@title(@c(priority-repo))
+@cl:doc(function priority-repo)
+@end(section)
+@begin(section)
+@title(@c(global-repo))
+@cl:doc(function global-repo)
+@end(section)
+@begin(section)
+@title(@c(aggregator))
+@cl:doc(function aggregator)
+@end(section)
+)
+@end(section)
+
+@begin(section)
+@title(@c(com.djhaskin.dsolv/pkgsys/core))
+
+The degasolv package system: reading @c(.dscard) files and generating and
+slurping @c(.dsrepo) repository indexes.
+
+@cl:with-package[name="com.djhaskin.dsolv/pkgsys/core"](
+@begin(section)
+@title(@c(read-card))
+@cl:doc(function read-card)
+@end(section)
+@begin(section)
+@title(@c(generate-repo-index))
+@cl:doc(function generate-repo-index)
+@end(section)
+@begin(section)
+@title(@c(slurp-degasolv-repo))
+@cl:doc(function slurp-degasolv-repo)
+@end(section)
+)
+@end(section)
+
+@begin(section)
+@title(@c(com.djhaskin.dsolv/pkgsys/apt))
+
+The APT package system: parsing Debian-style @c(Packages.gz) indexes.
+
+@cl:with-package[name="com.djhaskin.dsolv/pkgsys/apt"](
+@begin(section)
+@title(@c(deb-to-degasolv-requirements))
+@cl:doc(function deb-to-degasolv-requirements)
+@end(section)
+@begin(section)
+@title(@c(apt-repo))
+@cl:doc(function apt-repo)
+@end(section)
+@begin(section)
+@title(@c(slurp-apt-repo))
+@cl:doc(function slurp-apt-repo)
+@end(section)
+)
+@end(section)
+
+@begin(section)
+@title(@c(com.djhaskin.dsolv/pkgsys/subproc))
+
+The subprocess package system: calling external executables for package
+data.
+
+@cl:with-package[name="com.djhaskin.dsolv/pkgsys/subproc"](
+@begin(section)
+@title(@c(convert-input))
+@cl:doc(function convert-input)
+@end(section)
+@begin(section)
+@title(@c(make-slurper))
+@cl:doc(function make-slurper)
+@end(section)
+)
+@end(section)
+
+@begin(section)
+@title(@c(com.djhaskin.dsolv/pkgsys/git))
+
+The (intentionally unimplemented) Git package system.
+
+@cl:with-package[name="com.djhaskin.dsolv/pkgsys/git"](
+@begin(section)
+@title(@c(make-query))
+@cl:doc(function make-query)
+@end(section)
+)
+@end(section)
+
+@end(section)

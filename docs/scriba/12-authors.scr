@@ -1,0 +1,28 @@
+@begin(section)
+
+@title(Authors and Contributions)
+
+We thank everyone that has contributed to dsolv and to its predecessor,
+degasolv!
+
+@begin(section)
+@title(Authors)
+
+@begin(list)
+@item(Daniel Jay Haskin)
+@end(list)
+
+@end(section)
+
+@begin(section)
+@title(Contributions)
+
+@begin(list)
+@item(Logo contributed to degasolv by James Toney, reused for dsolv.)
+@item(dsolv is a port of the degasolv dependency resolver, originally
+written in Clojure by Daniel Jay Haskin.)
+@end(list)
+
+@end(section)
+
+@end(section)

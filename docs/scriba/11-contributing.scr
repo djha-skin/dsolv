@@ -1,0 +1,57 @@
+@begin(section)
+
+@title(Contributing)
+
+@i(Thank you so much for considering contribution to dsolv!)
+
+First, please read the dsolv @c(Code of Conduct). This project will not take
+any contribution coming from those who do not abide by the code of conduct.
+This means that if a person is currently under disciplinary action via
+avenues set forth in that document, we will ignore your PR and/or any issues
+you may log.
+
+A contribution can be large or small, code or non-code. To make a
+contribution, first log a GitHub issue. Talk about what you want, and ask for
+other's opinions. The project tracks its work with
+@link[uri="https://github.com/beads/beads"](Beads) issues in the repository.
+
+When you go to make the PR, please use the following checklist to test
+whether or not it is likely to be accepted:
+
+@begin(enum)
+@item(@b(Is it based on the @c(main) branch?)) Please make PRs to the
+@c(main) branch.
+@item(@b(Do you have tests in your PR, and do they pass?)) Tests are in two
+places in dsolv: the @c(tests/) directory, where more or less normal unit
+tests (using @link[uri="https://shinmera.github.io/parachute/"](Parachute))
+reside; and the @c(test/resources/scripts) directory, where scripty
+integration tests reside. You must have at least a script test (and
+preferably one or more unit tests) as a "spot-check" of your feature if the
+PR is to be merged. The test need not be elaborate; a simple test is better
+than no tests.
+@item(@b(Is your PR backwards compatible?)) The biggest feature dsolv
+provides is backwards compatibility.
+
+We only consider backwards incompatible changes in the form of new options
+for the "correct" behavior and switching the default for that option in a new
+version, ideally a major version.
+
+If dsolv breaks a build, it is a bug. If it breaks a build in a way that
+can't be fixed by configuration, it is a bad bug.
+
+A good test if a PR is "backwards compatible" is if it changes any previously
+merged script test and if it breaks any of them.
+@item(@b(Did you add documentation around the feature in your PR?)) Generally
+this at least means adding something to the @c(Command Reference) section of
+this manual (see the docs-writing instructions in the repository's
+@c(.agents/skills/) directory).
+@item(@b(Did you add an entry to the Changelog?)) This project keeps a
+curated changelog in @c(CHANGELOG.md).
+@end(enum)
+
+There are some exceptions to the above rules. For example, if your patch is
+less than two lines' difference from the previous version, your PR may be a
+"typo" PR, which may qualify to get around some of the above rules. Just ask
+the team on your GitHub issue.
+
+@end(section)

@@ -1,0 +1,87 @@
+@begin(section)
+
+@title(Changelog)
+
+All notable changes to dsolv are documented in this section. The canonical,
+up-to-date changelog lives in the repository's @c(CHANGELOG.md).
+
+@begin(section)
+@title(0.2.0 — 2026-08-09)
+
+Added:
+
+@begin(list)
+@item(Install-graph output fidelity: JSON and NRDL install-graph entries (and
+the JSON packages list) now include each package's @c(requirements) and
+@c(metadata) fields, matching legacy degasolv. Present packages serialize
+@c(requirements) as JSON @c(null) while resolved packages with no
+dependencies serialize @c([]).)
+@item(@c(scripts/build): builds the executable with @c(dynamic-space-size=8192)
+and @c(control-stack-size=64) baked into the dumped image (overridable via
+@c(DYNAMIC_SPACE_SIZE)/@c(CONTROL_STACK_SIZE)).)
+@item(No-regex APT parser: @c(slurp-apt-repo) now parses @c(Packages.gz) with
+simple line-based operations instead of regular expressions, fixing heap
+exhaustion on the 19 MB Ubuntu index. Adds @c(file://) repository URL support
+so local index files work.)
+@item(The @c(subproc) package system slurper (@c(make-slurper)): runs an
+external executable, parses its JSON or NRDL output, and converts it into
+resolver query functions. Includes tests for JSON/NRDL parsing, non-zero exit
+handling, and unknown output formats.)
+@item(Regression tests for the @c(generate-repo-index) to
+@c(slurp-degasolv-repo) round trip.)
+@end(list)
+
+Fixed:
+
+@begin(list)
+@item(Config-file merge precedence: user-specified @c(-c)/@c(-j) config files
+now override one another (later files win, matching degasolv's @c(reduce
+merge)) while CLI/env values still take precedence.)
+@item(Parsed packages with no requirements now carry an empty requirement
+list, so JSON output can distinguish present packages (@c(null)) from
+resolved packages without dependencies (@c([])).)
+@item(@c(generate-repo-index) card decoding: generated repository indexes now
+store @c(package-info) structs instead of raw fset maps, so index sort orders
+and downstream decoders (@c(slurp-degasolv-repo)) no longer crash.)
+@item(@c(query-repo) exit status: a query with no results now exits non-zero
+(65, @c(:data-format-error)) as legacy degasolv did.)
+@item(Strategy option validation: @c(--search-strat), @c(--conflict-strat),
+@c(--list-strat), @c(--resolve-strat), and @c(--index-strat) reject values
+other than the legacy degasolv choices with a clean error message.)
+@item(@c(resolve-locations) exit status: successful resolutions now exit 0
+instead of falling through to the error path and exiting with status 71.)
+@item(The @c(subproc) package system's required argument is registered under
+the keyword @c(:subproc-exe) so the CLI's required-argument check works.)
+@end(list)
+
+@end(section)
+
+@begin(section)
+@title(0.1.0 — 2025-07-31)
+
+Added:
+
+@begin(list)
+@item(Initial port of the degasolv dependency resolver from Clojure to Common
+Lisp.)
+@item(Core resolver data structures and algorithm: @c(package-info),
+@c(requirement), @c(version-predicate), @c(decorated-requirement) structs,
+string-to-requirement parser, version comparison, spec-calling, and the full
+@c(resolve-dependencies-deluxe) algorithm with all strategies (thorough/fast,
+exclusive/inclusive/prioritized, breadth-first/depth-first).)
+@item(CLI interface using CLIFF with subcommands: @c(display-config),
+@c(generate-card), @c(generate-repo-index), @c(resolve-locations),
+@c(query-repo).)
+@item(Utility functions: @c(data-slurp) (HTTP/file/stdin), @c(base-slurp),
+@c(default-spit), @c(pretty-spit), @c(map-query), @c(priority-repo),
+@c(global-repo), @c(aggregator).)
+@item(Package system modules: core (@c(read-card),
+@c(generate-repo-index), @c(slurp-degasolv-repo)), APT
+(@c(slurp-apt-repo)), Git (stub), and subproc (@c(make-slurper)).)
+@item(ASDF system definition (@c(com.djhaskin.dsolv.asd)) and Roswell script
+(@c(com.djhaskin.dsolv.ros)) for executable building.)
+@end(list)
+
+@end(section)
+
+@end(section)

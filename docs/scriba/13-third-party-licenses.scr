@@ -1,0 +1,35 @@
+@begin(section)
+
+@title(3rd Party Licenses)
+
+dsolv is built on the shoulders of giants. Here are the licenses for the
+third party software that dsolv depends on:
+
+@begin(code)
+com.djhaskin.cliff   - MIT License
+com.djhaskin.nrdl    - MIT License
+com.djhaskin.svers   - MIT License
+alexandria           - Public Domain
+cl-ppcre             - BSD 2-Clause License
+fset                 - BSD 2-Clause License (includes the gmap
+                       generalized mapping facility)
+chipz                - BSD 3-Clause License
+babel                - MIT License
+dexador              - MIT License
+quri                 - MIT License
+cl-reexport          - MIT License
+arrows               - CC0 / Public Domain
+trivial-features     - MIT License
+trivial-package-local-nicknames - Unlicense / Public Domain
+codex                - MIT License
+scriba               - MIT License
+@end(code)
+
+The documentation is built with
+@link[uri="https://commondoc.github.io/codex/"](codex) and
+@link[uri="https://commondoc.github.io/scriba/"](scriba), which are also
+MIT-licensed, together with the rest of the common-doc ecosystem
+(@c(common-doc), @c(common-html), @c(docparser), @c(pandocl), @c(parenml),
+and friends).
+
+@end(section)

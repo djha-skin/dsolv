@@ -1,0 +1,40 @@
+@begin(section)
+
+@title(Recipes)
+
+For the impatient.
+
+Make a bash script to wrap the dsolv binary like this, making sure to make
+the script executable:
+
+@begin[lang=sh](code)
+#!/bin/sh
+# Filename: /usr/bin/dsolv
+exec <location-of-dsolv>/com.djhaskin.dsolv "${@}"
+@end(code)
+
+Generate a card:
+
+@begin[lang=sh](code)
+dsolv generate-card -i "name" -v "0.1.0" \
+    -l "https://example.com/repo/name-0.1.0.zip" \
+    -r "a-dep" -r "another-dep>=3.5.0" \
+    -C name-0.1.0.zip.dscard
+@end(code)
+
+BASH: Download each location, then its signature, and verify it:
+
+@begin[lang=sh](code)
+#!/bin/sh
+set -exou pipefail
+dsolv resolve-locations -R ./index.dsrepo -r a -o json | \
+    jq -r .packages[].location | \
+    while read url
+    do
+        wget $url
+        wget $url.asc
+        gpg --verify $url.asc
+    done
+@end(code)
+
+@end(section)

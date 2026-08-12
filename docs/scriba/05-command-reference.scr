@@ -1,0 +1,385 @@
+@begin(section)
+
+@title(Command Reference)
+
+This guide describes the dsolv CLI: what subcommands and options there are,
+and what they are for. It also describes how to specify options.
+
+@begin(section)
+@title(How Options Are Gathered)
+
+dsolv is a @link[uri="https://github.com/djha-skin/cliff"](CLIFF)-powered
+program. Options can be given via configuration files, environment variables,
+and the command line, in that order, with later values overriding earlier
+ones.
+
+Configuration files are consulted from a system-wide location
+(@c(/etc/dsolv/config.nrdl) on Linux), a home-directory location
+(@c(~/.config/dsolv/config.nrdl) on Linux), and a file named @c(.dsolv.nrdl)
+in the current directory (or any of its parents). Files can also be specified
+explicitly with the @c(-c)/@c(--config-file) (NRDL) and
+@c(-j)/@c(--json-config) (JSON) options. When multiple files are given, later
+files override earlier ones.
+
+Every option has a corresponding environment variable, named
+@c(DSOLV_<KIND>_<OPTION>):
+
+@begin(list)
+@item(@c(DSOLV_FLAG_<OPTION>=1) enables a flag)
+@item(@c(DSOLV_ITEM_<OPTION>=<VALUE>) sets a string value)
+@item(@c(DSOLV_LIST_<OPTION>=<V1>,<V2>,...) sets a list option)
+@item(@c(DSOLV_TABLE_<OPTION>=<K1>,<V1>=<K2>,<V2>=...) sets a key/value
+table option)
+@item(@c(DSOLV_NRDL_<OPTION>=<NRDL_STRING>) sets a value using a NRDL string)
+@item(@c(DSOLV_FILE_<OPTION>=<FILE_PATH>) sets a value from a NRDL document
+in a file, as if by the @c(--file-*) flag)
+@item(@c(DSOLV_RAW_<OPTION>=<FILE_PATH>) sets a value from the raw bytes of a
+file, as if by the @c(--raw-*) flag)
+@end(list)
+
+For compatibility with degasolv, the legacy @c(DEGASOLV_*) environment
+variables are aliased to their @c(DSOLV_*) equivalents; for example,
+@c(DEGASOLV_REQUIREMENTS) is an alias for @c(DSOLV_LIST_REQUIREMENTS) and
+@c(DEGASOLV_CONFIG_FILES) for @c(DSOLV_LIST_CONFIG_FILES). The full alias
+table is printed on the @c(help) page.
+
+On the command line, each option can be set with a
+@c(--set-<option> <value>) (string), @c(--add-<option> <value>) (list),
+@c(--join-<option> <key>=<value>) (table), @c(--nrdl-<option> <nrdl>) (NRDL
+string), or @c(--enable-<option>)/@c(--disable-<option>) (flag) form. The
+legacy degasolv spellings (@c(--requirement), @c(--repository), @c(-r),
+@c(-R), and so on) are provided as command line aliases, and are what the
+rest of this guide uses.
+
+@end(section)
+
+@begin(section)
+@title(A Note on Specifying Files)
+
+Whenever an option takes a file, the user can specify one of four things:
+
+@begin(enum)
+@item(An @c(http://) or @c(https://) URL. URL-encoded authentication can be
+specified before the @c(@) character:
+@begin(list)
+@item(@c(https://username:password@example.com/...) for HTTP basic
+authentication)
+@item(@c(https://token@example.com/...) for an OAuth2 bearer token)
+@item(@c(https://X-Auth-Token=value@example.com/...) for a custom HTTP
+header)
+@end(list))
+@item(A @c(file://) URL.)
+@item(A plain filesystem reference.)
+@item(The character @c(-), signifying standard input.)
+@end(enum)
+
+This is true for options of dsolv and options of any of its subcommands.
+
+@end(section)
+
+@begin(section)
+@title(Global Options)
+
+These options are accepted by dsolv itself and are available to every
+subcommand:
+
+@begin(deflist)
+@term(@c(-c), @c(--config-file @i(<file>)))
+@def(Add an NRDL configuration file. May be specified multiple times; later
+files override earlier ones. Environment: @c(DSOLV_LIST_CONFIG_FILES) /
+@c(DEGASOLV_CONFIG_FILES).)
+@term(@c(-j), @c(--json-config @i(<file>)))
+@def(Add a JSON configuration file. May be specified multiple times;
+later files override earlier ones. Environment:
+@c(DSOLV_LIST_JSON_CONFIG_FILES) / @c(DEGASOLV_JSON_CONFIG_FILES).)
+@term(@c(-k), @c(--option-pack @i(<pack>)))
+@def(Apply an option pack, a bundle of default option values. Available
+packs are @c(v1), @c(multi-version-mode), and @c(firstfound-version-mode)
+(see @c(Strategies and Package Systems) below). May be specified multiple
+times. Environment: @c(DSOLV_LIST_OPTION_PACKS) /
+@c(DEGASOLV_OPTION_PACKS).)
+@term(@c(-h), @c(--help), @c(help))
+@def(Print the help page.)
+@term(@c(--meta @i(<key>=<value>)))
+@def(Set a metadata key/value pair. May be specified multiple times.
+Environment: @c(DSOLV_TABLE_META).)
+@end(deflist)
+
+@end(section)
+
+@begin(section)
+@title(Strategies and Package Systems)
+
+Several options control how resolution behaves. They are shared between
+subcommands that resolve dependencies.
+
+@begin(deflist)
+@term(@c(-t), @c(--package-system @i(<system>)))
+@def(The package system to use for slurping repositories. One of
+@c(degasolv) (the default; @c(.dscard)/@c(.dsrepo) files),
+@c(apt) (Debian @c(Packages.gz) indexes), @c(git) (a stub), or @c(subproc)
+(an external executable). Environment:
+@c(DSOLV_ITEM_PACKAGE_SYSTEM) / @c(DEGASOLV_PACKAGE_SYSTEM).)
+@term(@c(-e), @c(--search-strat @i(<strat>)))
+@def(Search strategy: @c(breadth-first) (default) or @c(depth-first).)
+@term(@c(-f), @c(--conflict-strat @i(<strat>)))
+@def(Conflict strategy: @c(exclusive) (default), @c(inclusive), or
+@c(prioritized).)
+@term(@c(-L), @c(--list-strat @i(<strat>)))
+@def(List strategy: @c(lazy) (default), @c(eager), or @c(as-set).)
+@term(@c(-s), @c(--resolve-strat @i(<strat>)))
+@def(Resolve strategy: @c(thorough) (default) or @c(fast).)
+@term(@c(-S), @c(--index-strat @i(<strat>)))
+@def(Index aggregation strategy: @c(priority) (default) or @c(global).)
+@term(@c(-O), @c(--index-sort-order @i(<order>)))
+@def(Sort order for repository index entries: @c(descending) (default) or
+@c(ascending).)
+@term(@c(-V), @c(--version-comparison @i(<scheme>)))
+@def(The version comparison scheme: @c(debian), @c(maven), @c(naive),
+@c(python), @c(rpm), @c(rubygem), or @c(semver) (the default). Provided by
+the svers library.)
+@term(@c(--enable-alternatives) / @c(--disable-alternatives))
+@def(Whether to consider alternative versions of a package (default:
+enabled). Environment: @c(DSOLV_FLAG_ALTERNATIVES) /
+@c(DEGASOLV_ALTERNATIVES).)
+@term(@c(--enable-error-format) / @c(--disable-error-format))
+@def(Whether errors are printed as NRDL/JSON documents (default: disabled).
+Environment: @c(DSOLV_FLAG_ERROR_FORMAT) / @c(DEGASOLV_ERROR_FORMAT).)
+@term(@c(-o), @c(--output-format @i(<format>)))
+@def(Output format: @c(plain) (default), @c(json), or @c(nrdl).)
+@end(deflist)
+
+@end(section)
+
+@begin(section)
+@title(Using Site-Wide Configuration Files)
+
+The way configuration files are merged (see How Options Are Gathered above),
+together with the fact that configuration files may be given as @c(http://)
+or @c(https://) URLs (see A Note on Specifying Files above), makes it
+possible to configure every dsolv installation in an organization from a
+single, centrally served configuration file.
+
+Several options fundamentally change how dsolv behaves: @c(--conflict-strat),
+@c(--index-strat), @c(--resolve-strat), and @c(--search-strat) (see
+Strategies and Package Systems above). It is recommended that these options
+be specified site-wide, if they are specified at all. Putting them in a site
+configuration file and serving that file internally over HTTP(S) lets each
+build point at the site file together with its own build-specific
+configuration, as in this example:
+
+@begin[lang=sh](code)
+dsolv \
+    --config-file "https://nas.example.com/dsolv/site.nrdl" \
+    --config-file "./.dsolv.nrdl" \
+    generate-card
+@end(code)
+
+Remember that configuration files can also be specified with environment
+variables. The example above looks like this when environment variables are
+used, setting the @c(--config-file) option for every invocation:
+
+@begin[lang=sh](code)
+export DSOLV_LIST_CONFIG_FILES="https://nas.example.com/dsolv/site.nrdl,./.dsolv.nrdl"
+dsolv generate-card
+@end(code)
+
+Here is the same example using JSON configuration files:
+
+@begin[lang=sh](code)
+export DSOLV_LIST_JSON_CONFIG_FILES="https://nas.example.com/dsolv/site.json,./.dsolv.json"
+dsolv generate-card
+@end(code)
+
+For compatibility with degasolv, the legacy @c(DEGASOLV_CONFIG_FILES) and
+@c(DEGASOLV_JSON_CONFIG_FILES) environment variables are aliases for
+@c(DSOLV_LIST_CONFIG_FILES) and @c(DSOLV_LIST_JSON_CONFIG_FILES)
+respectively.
+
+As with any configuration that may contain passwords or API tokens (for
+example, in the URLs of configuration files or repository indexes), decide
+how sensitive information should reach dsolv. Options include environment
+variables, standard input (@c(-) as the filename), configuration files with
+appropriate filesystem permissions, or the command line itself; dsolv leaves
+the choice of what is sufficiently secure to you.
+
+@end(section)
+
+@begin(section)
+@title(Subcommand: resolve-locations)
+
+Resolve dependencies and print package locations. This is the heart of
+dsolv: it takes requirements, a repository, and strategy options, and returns
+the locations of the packages that satisfy the requirements.
+
+Arguments used by @c(resolve-locations):
+
+@begin(deflist)
+@term(@c(-r), @c(--requirement @i(<req>)))
+@def(Add a requirement, such as @c(a>2.0,<3.0) or @c(!b). May be specified
+multiple times. Required. Environment:
+@c(DSOLV_LIST_REQUIREMENTS) / @c(DEGASOLV_REQUIREMENTS).)
+@term(@c(-R), @c(--repository @i(<url>)))
+@def(Add a repository to consult. May be specified multiple times. Required
+(unless the package system provides its own query constructor).
+Environment: @c(DSOLV_LIST_REPOSITORIES) / @c(DEGASOLV_REPOSITORIES).)
+@term(@c(-p), @c(--present-package @i(<id==version>)))
+@def(Declare a package as already present in the build, in the form
+@c(id==version). May be specified multiple times. Environment:
+@c(DSOLV_LIST_PRESENT_PACKAGES) / @c(DEGASOLV_PRESENT_PACKAGES).)
+@term(@c(-o), @c(--output-format @i(<format>)))
+@def(Output format for the resolution result: @c(plain) (default),
+@c(json), or @c(nrdl).)
+@term(@c(-t), @c(--package-system @i(<system>)))
+@def(The package system to use (see @c(Strategies and Package Systems)).)
+@term(@c(-e), @c(--search-strat @i(<strat>)))
+@def(Search strategy: @c(breadth-first) or @c(depth-first).)
+@term(@c(-f), @c(--conflict-strat @i(<strat>)))
+@def(Conflict strategy: @c(exclusive), @c(inclusive), or @c(prioritized).)
+@term(@c(-L), @c(--list-strat @i(<strat>)))
+@def(List strategy: @c(lazy), @c(eager), or @c(as-set).)
+@term(@c(-s), @c(--resolve-strat @i(<strat>)))
+@def(Resolve strategy: @c(thorough) or @c(fast).)
+@term(@c(-S), @c(--index-strat @i(<strat>)))
+@def(Index aggregation strategy: @c(priority) or @c(global).)
+@term(@c(-V), @c(--version-comparison @i(<scheme>)))
+@def(Version comparison scheme (see @c(Strategies and Package Systems)).)
+@term(@c(--enable-alternatives) / @c(--disable-alternatives))
+@def(Whether to consider alternative versions of a package.)
+@term(@c(--enable-error-format) / @c(--disable-error-format))
+@def(Whether errors are printed as documents.)
+@term(@c(-m), @c(--meta @i(<key>=<value>)))
+@def(Set metadata on the result.)
+@term(@c(-k), @c(--option-pack @i(<pack>)))
+@def(Apply an option pack.)
+@term(@c(-c), @c(--config-file @i(<file>)) and @c(-j), @c(--json-config @i(<file>)))
+@def(Specify configuration files (see @c(Global Options)).)
+@end(deflist)
+
+@end(section)
+
+@begin(section)
+@title(Subcommand: generate-repo-index)
+
+Generate a @c(.dsrepo) repository index from the @c(.dscard) files found
+under a search directory.
+
+Arguments used by @c(generate-repo-index):
+
+@begin(deflist)
+@term(@c(-d), @c(--search-directory @i(<dir>)))
+@def(The directory to search for @c(.dscard) files. Default: @c(.).
+Environment: @c(DSOLV_ITEM_SEARCH_DIRECTORY) /
+@c(DEGASOLV_SEARCH_DIRECTORY).)
+@term(@c(-I), @c(--index-file @i(<file>)))
+@def(The index file to write. Default: @c(index.dsrepo). Environment:
+@c(DSOLV_ITEM_INDEX_FILE) / @c(DEGASOLV_INDEX_FILE).)
+@term(@c(-a), @c(--add-to @i(<file>)))
+@def(If given, an existing index to merge the new entries into, rather than
+starting from an empty index.)
+@term(@c(-O), @c(--index-sort-order @i(<order>)))
+@def(Sort order for the index entries: @c(descending) (default) or
+@c(ascending).)
+@term(@c(-V), @c(--version-comparison @i(<scheme>)))
+@def(Version comparison scheme used for sorting. Default: @c(semver).)
+@end(deflist)
+
+@end(section)
+
+@begin(section)
+@title(Subcommand: generate-card)
+
+Generate a @c(.dscard) file representing a package in a dsolv repository.
+
+Arguments used by @c(generate-card):
+
+@begin(deflist)
+@term(@c(-i), @c(--id @i(<id>)))
+@def(The package id. Required. Environment: @c(DSOLV_ITEM_ID) /
+@c(DEGASOLV_ID).)
+@term(@c(-v), @c(--version @i(<version>)))
+@def(The package version. Required. Environment: @c(DSOLV_ITEM_VERSION) /
+@c(DEGASOLV_VERSION).)
+@term(@c(-l), @c(--location @i(<url>)))
+@def(Where the package artifact can be downloaded. Required. Environment:
+@c(DSOLV_ITEM_LOCATION) / @c(DEGASOLV_LOCATION).)
+@term(@c(-r), @c(--requirement @i(<req>)))
+@def(Add a requirement of this package. May be specified multiple times.)
+@term(@c(-m), @c(--meta @i(<key>=<value>)))
+@def(Set additional metadata fields on the card. Keys that conflict with the
+card's built-in fields (@c(id), @c(version), @c(location),
+@c(requirements)) are ignored.)
+@term(@c(-C), @c(--card-file @i(<file>)))
+@def(Where to write the card. Default: @c(./out.dscard). Environment:
+@c(DSOLV_ITEM_CARD_FILE) / @c(DEGASOLV_CARD_FILE).)
+@end(deflist)
+
+@end(section)
+
+@begin(section)
+@title(Subcommand: query-repo)
+
+Query a repository for the packages matching a query, without resolving.
+
+Arguments used by @c(query-repo):
+
+@begin(deflist)
+@term(@c(-R), @c(--repository @i(<url>)))
+@def(Add a repository to query. May be specified multiple times. Required.)
+@term(@c(-q), @c(--query @i(<query>)))
+@def(The query, a requirement such as @c(e) or @c(e>=1.8.0). Required.
+Environment: @c(DSOLV_ITEM_QUERY) / @c(DEGASOLV_QUERY).)
+@term(@c(-S), @c(--index-strat @i(<strat>)))
+@def(Index aggregation strategy: @c(priority) or @c(global).)
+@term(@c(-o), @c(--output-format @i(<format>)))
+@def(Output format: @c(plain), @c(json), or @c(nrdl).)
+@term(@c(-t), @c(--package-system @i(<system>)))
+@def(The package system to use.)
+@term(@c(-V), @c(--version-comparison @i(<scheme>)))
+@def(Version comparison scheme.)
+@term(@c(--enable-error-format) / @c(--disable-error-format))
+@def(Whether an empty result set is reported as an error document.)
+@end(deflist)
+
+@end(section)
+
+@begin(section)
+@title(Subcommand: display-config)
+
+Display the effective configuration, after merging configuration files,
+environment variables, and the command line.
+
+Arguments used by @c(display-config):
+
+@begin(deflist)
+@term(@c(-o), @c(--output-format @i(<format>)))
+@def(Output format: @c(plain), @c(json), or @c(nrdl).)
+@term(@c(-c), @c(--config-file @i(<file>)) and @c(-j), @c(--json-config @i(<file>)))
+@def(Specify configuration files whose effective contents should be shown.)
+@end(deflist)
+
+@end(section)
+
+@begin(section)
+@title(The Default Action)
+
+Running @c(dsolv) with no subcommand prints a short usage message and the
+list of available subcommands. To learn more about a specific subcommand,
+run @c(dsolv <subcommand> help) or pass @c(--enable-help).
+
+@end(section)
+
+@begin(section)
+@title(Notes on Versions)
+
+@begin(list)
+@item(On a best-effort basis, features have had the version that they first
+appeared associated with them in this guide.)
+@item(As of version 1.3.0 of degasolv (whose CLI dsolv mirrors), all options
+which take a file may be given @c(-) as the filename to specify standard
+input. dsolv inherits this behavior.)
+@end(list)
+
+@end(section)
+
+@end(section)
